@@ -8,6 +8,16 @@ namespace WindowsFormsApp1.Analizadores
 {
     class Scanner_201700539
     {
+        List<Token> ListaTokens = new List<Token>();
+        List<Token> Errores = new List<Token>();
+        public List<Token> getErrores()
+        {
+            return this.Errores;
+        }
+        public List<Token> getListaDeTokens()
+        {
+            return this.ListaTokens;
+        }
         public Scanner_201700539(List<Token> ListaTokens,String doc)
         {
             int estado = 0;
@@ -120,7 +130,7 @@ namespace WindowsFormsApp1.Analizadores
                                     break;
                                 default:
                                     tk = new Token(Token.TipoError.Lexico, "El caracter " + c + ", no es parte del lenguaje.", fila, columna);
-                                    ListaTokens.Add(tk);
+                                    Errores.Add(tk);
                                     estado = 0;
                                     break;
                             }
@@ -222,6 +232,7 @@ namespace WindowsFormsApp1.Analizadores
                         break;
                   
                     case 11:
+                        
                         if (!Char.IsDigit(c))
                         {
                             lexema += c;
@@ -233,6 +244,7 @@ namespace WindowsFormsApp1.Analizadores
                             continue;
 
                         }
+                        
                         lexema += c;
                         estado = 11;
                         break;
@@ -308,7 +320,11 @@ namespace WindowsFormsApp1.Analizadores
                 }
                 columna++;
             }
+            this.ListaTokens = ListaTokens;
         }
+
+      
+
         private Token Reservadas(String lexema,int fila,int columna)
         {
             String reservada = lexema.ToLower();

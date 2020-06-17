@@ -12,18 +12,13 @@ namespace WindowsFormsApp1.Analizadores
         List<Token> errores = new List<Token>();
         int i;
         Token preanalisis;
-        public List<Token> getErrores()
-        {
-            return this.errores;
-        }
         public Parser_201700539(List<Token> tokens,List<Token> Errores)
         {
             this.tokens = tokens;
             this.errores = Errores;
-            this.i = 0;
             this.preanalisis = tokens[i];
             this.tokens.Add(new Token(Token.Tipo.dolar, "$", 0, 0));
-            
+            this.i = 0;
             INICIO();
         }
         public Token.Tipo Match(Token.Tipo tk,String descripcion)

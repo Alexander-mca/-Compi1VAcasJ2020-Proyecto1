@@ -3,15 +3,23 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WindowsFormsApp1.Analizadores;
+using WindowsFormsApp1.Tablas;
 
 namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
+        OpenFileDialog abrir;
+        SaveFileDialog save;
+        List<Token> ListaTokens = new List<Token>();
+        List<Token> Errores = new List<Token>();
+        Dictionary<Tabla,String> Tablas = new Dictionary<Tabla,String>();
         public Form1()
         {
             InitializeComponent();
@@ -123,6 +131,176 @@ namespace WindowsFormsApp1
         private void richTextBox1_KeyPress(object sender, KeyPressEventArgs e)
         {
 
+        }
+
+        private void abrirToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+           abrir = new OpenFileDialog();
+
+            abrir.Filter = "Archivos de texto (*.DAMC)|*.DAMC";
+            if (abrir.ShowDialog() == DialogResult.OK)
+            {
+                StreamReader arch = new StreamReader(abrir.FileName);
+                richTextBox1.Text = arch.ReadToEnd();
+                Dock = DockStyle.Fill;
+                arch.Close();
+
+            }
+            //String tex = text1.Text;
+            //text1.Clear();
+            //Colorear(text1, tex, Color.Black);
+        }
+
+        private void guardarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (abrir == null)
+            {
+                MessageBox.Show("El archivo no existe.", "Mensaje de error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else
+            {
+                try
+                {
+                    StreamWriter w = new StreamWriter(abrir.FileName);
+                    w.WriteLine(richTextBox1.Text);
+                    w.Close();
+                    MessageBox.Show("Archivo guardado.", "Mensaje de Confirmación.", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }catch(ArgumentException ex)
+                {
+                   Console.Write("Error");
+                }
+            }
+        }
+
+        private void guardarComoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            if (abrir != null)
+            {
+                save = new SaveFileDialog();
+                save.FileName = abrir.FileName;
+
+                // filtros
+                save.Filter = "Archivos de texto (*.DAMC)|*.DAMC";
+
+                if (save.ShowDialog() == DialogResult.OK)
+                {
+                    RichTextBox w = new RichTextBox();
+                    w =richTextBox1;
+                    Dock = DockStyle.Fill;
+                    w.SaveFile(save.FileName, RichTextBoxStreamType.UnicodePlainText);
+                }
+
+
+            }
+            else
+            {
+                save = new SaveFileDialog();
+
+
+                // filtros
+                save.Filter = "Archivos de texto (*.DAMC)|*.DAMC";
+
+                if (save.ShowDialog() == DialogResult.OK)
+                {
+                    RichTextBox w = new RichTextBox();
+                    w = richTextBox1;
+                    Dock = DockStyle.Fill;
+                    w.SaveFile(save.FileName, RichTextBoxStreamType.PlainText);
+                }
+            }
+        }
+
+        private void salirToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DialogResult dialogResult = MessageBox.Show("Advertencia", "¿Desea guardar el archivo?", MessageBoxButtons.YesNoCancel);
+            if (dialogResult == DialogResult.Yes)
+            {
+                if (abrir != null)
+                {
+                    StreamWriter w = new StreamWriter(abrir.FileName);
+                    w.WriteLine(richTextBox1.Text);
+                    w.Close();
+                    MessageBox.Show("Archivo guardado.", "Mensaje de Confirmación.", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    save = new SaveFileDialog();
+                    // filtros
+                    save.Filter = "Archivos de texto (*.DAMC)|*.DAMC";
+
+                    if (save.ShowDialog() == DialogResult.OK)
+                    {
+                        RichTextBox w = new RichTextBox();
+                        w = richTextBox1;
+                        Dock = DockStyle.Fill;
+                        w.SaveFile(save.FileName, RichTextBoxStreamType.PlainText);
+                    }
+                }
+            }
+        }
+
+        private void nuevoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            richTextBox1.Clear();
+        }
+
+        private void ejecutarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            String texto = richTextBox1.Text;
+            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens, texto);
+            //if (scanner.getErrores().Count != 0)
+            //{
+            //    MessageBox.Show("Existen Errores Léxicos.");
+            //}
+            this.ListaTokens = scanner.getListaDeTokens();
+            this.Errores = scanner.getErrores();
+            Parser_201700539 parser = new Parser_201700539(this.ListaTokens, this.Errores);
+            if (parser.getErrores().Count != 0)
+            {
+                MessageBox.Show("Existen Errores");
+            }
+            
+
+        }
+
+        private void cargarTablasToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            abrir = new OpenFileDialog();
+            String texto;
+            abrir.Filter = "Archivos de texto (*.SQLE)|*.SQLE";
+            if (abrir.ShowDialog() == DialogResult.OK)
+            {
+                StreamReader arch = new StreamReader(abrir.FileName);
+                texto = arch.ReadToEnd();
+                Dock = DockStyle.Fill;
+                arch.Close();
+
+            }
+           
+            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens, texto);
+            //if (scanner.getErrores().Count != 0)
+            //{
+            //    MessageBox.Show("Existen Errores Léxicos.");
+            //}
+            this.ListaTokens = scanner.getListaDeTokens();
+            this.Errores = scanner.getErrores();
+            Parser_201700539 parser = new Parser_201700539(this.ListaTokens, this.Errores);
+            if (parser.getErrores().Count != 0)
+            {
+                MessageBox.Show("Existen Errores");
+            }
+        }
+
+        private void verTablasToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Tablas.Count == 0)
+            {
+                MessageBox.Show("No hay tablas cargadas");
+                return;
+            }
+
+            //se procede a mostrar una ventana con la informacion de las tablas
         }
     }
 }
