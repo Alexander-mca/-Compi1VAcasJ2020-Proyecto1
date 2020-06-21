@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace WindowsFormsApp1.Analizadores
 {
@@ -10,6 +12,7 @@ namespace WindowsFormsApp1.Analizadores
     {
         List<Token> ListaTokens = new List<Token>();
         List<Token> Errores = new List<Token>();
+        RichTextBox documento;
         public List<Token> getErrores()
         {
             return this.Errores;
@@ -18,10 +21,12 @@ namespace WindowsFormsApp1.Analizadores
         {
             return this.ListaTokens;
         }
-        public Scanner_201700539(List<Token> ListaTokens,String doc)
+        public Scanner_201700539(List<Token> ListaTokens,RichTextBox documento)
         {
+            this.documento = documento;
             int estado = 0;
             String lexema="";
+            String doc = documento.Text;
             int fila=1, columna = 1;
             for  (int i=0;i<doc.Length;i++)
             {
@@ -108,24 +113,32 @@ namespace WindowsFormsApp1.Analizadores
                                     lexema += c;
                                     estado = 0;
                                     tk = new Token(Token.Tipo.menor, lexema, fila, columna);
+                                    this.documento.Select(i, lexema.Length);
+                                    this.documento.SelectionColor = Color.Red;
                                     lexema = "";
                                     break;
                                 case '>':
                                     lexema += c;
                                     estado = 0;
                                     tk = new Token(Token.Tipo.mayor, lexema, fila, columna);
+                                    this.documento.Select(i, lexema.Length);
+                                    this.documento.SelectionColor = Color.Red;
                                     lexema = "";
                                     break;
                                 case '=':
                                     lexema += c;
                                     estado = 0;
                                     tk = new Token(Token.Tipo.igual, lexema, fila, columna);
+                                    this.documento.Select(i, lexema.Length);
+                                    this.documento.SelectionColor = Color.Red;
                                     lexema = "";
                                     break;
                                 case '!':
                                     lexema += c;
                                     estado = 0;
                                     tk = new Token(Token.Tipo.diferente, lexema, fila, columna);
+                                    this.documento.Select(i, lexema.Length);
+                                    this.documento.SelectionColor = Color.Red;
                                     lexema = "";
                                     break;
                                 default:
@@ -153,7 +166,10 @@ namespace WindowsFormsApp1.Analizadores
                     case 3:
                         if (c == '"')
                         {
+                            lexema += c;
                             tk = new Token(Token.Tipo.cadena, lexema, fila, columna);
+                            this.documento.Select(i, lexema.Length);
+                            this.documento.SelectionColor = Color.Green;
                             ListaTokens.Add(tk);
                             estado = 0;
                             lexema = "";
@@ -168,6 +184,8 @@ namespace WindowsFormsApp1.Analizadores
                             lexema += c;
                             estado = 0;
                             tk = new Token(Token.Tipo.entero, lexema, fila, columna);
+                            this.documento.Select(i, lexema.Length);
+                            this.documento.SelectionColor = Color.Blue;
                             ListaTokens.Add(tk);
                             lexema = "";
                             i--;
@@ -190,7 +208,7 @@ namespace WindowsFormsApp1.Analizadores
                         {
                             lexema += c;
                             estado = 0;
-                            tk = Reservadas(lexema,fila,columna);
+                            tk = Reservadas(lexema,fila,columna,i);
                             ListaTokens.Add(tk);
                             lexema = "";
                             i--;
@@ -215,6 +233,8 @@ namespace WindowsFormsApp1.Analizadores
                         }
                         lexema += c;
                          tk = new Token(Token.Tipo.ComentLinea, lexema, fila, columna);
+                        this.documento.Select(i, lexema.Length);
+                        this.documento.SelectionColor = Color.LightGray;
                         ListaTokens.Add(tk);
                         lexema = "";
                         estado = 0;
@@ -235,9 +255,12 @@ namespace WindowsFormsApp1.Analizadores
                         
                         if (!Char.IsDigit(c))
                         {
+                            //se aceptan los numeros flotantes
                             lexema += c;
                             estado = 0;
                             tk = new Token(Token.Tipo.flotante, lexema, fila, columna);
+                            this.documento.Select(i, lexema.Length);
+                            this.documento.SelectionColor = Color.Blue;
                             ListaTokens.Add(tk);
                             lexema = "";
                             i--;
@@ -308,9 +331,12 @@ namespace WindowsFormsApp1.Analizadores
                             estado = 20;
                         }
                         if (c == '\'')
-                        {
+                        { 
+                            //se aceptan las fechas
                             lexema += c;
                             tk = new Token(Token.Tipo.fecha, lexema, fila, columna);
+                            this.documento.Select(i, lexema.Length);
+                            this.documento.SelectionColor = Color.Orange;
                             ListaTokens.Add(tk);
                             lexema = "";
                             estado = 0;
@@ -325,7 +351,7 @@ namespace WindowsFormsApp1.Analizadores
 
       
 
-        private Token Reservadas(String lexema,int fila,int columna)
+        private Token Reservadas(String lexema,int fila,int columna,int i)
         {
             String reservada = lexema.ToLower();
             Token tk;
@@ -336,9 +362,13 @@ namespace WindowsFormsApp1.Analizadores
                     break;
                 case "tabla":
                     tk = new Token(Token.Tipo.tabla, lexema, fila, columna);
+                    this.documento.Select(i, lexema.Length);
+                    this.documento.SelectionColor = Color.Violet;
                     break;
                 case "insertar":
                     tk = new Token(Token.Tipo.insertar, lexema, fila, columna);
+                    this.documento.Select(i, lexema.Length);
+                    this.documento.SelectionColor = Color.Violet;
                     break;
                 case "en":
                     tk = new Token(Token.Tipo.en, lexema, fila, columna);
@@ -378,15 +408,21 @@ namespace WindowsFormsApp1.Analizadores
                     break;
                 case "eliminar":
                     tk = new Token(Token.Tipo.eliminar, lexema, fila, columna);
+                    this.documento.Select(i, lexema.Length);
+                    this.documento.SelectionColor = Color.Violet;
                     break;
                 case "actualizar":
                     tk = new Token(Token.Tipo.actualizar, lexema, fila, columna);
+                    this.documento.Select(i, lexema.Length);
+                    this.documento.SelectionColor = Color.Violet;
                     break;
                 case "establecer":
                     tk = new Token(Token.Tipo.establecer, lexema, fila, columna);
                     break;
                 default:
                     tk = new Token(Token.Tipo.id, lexema, fila, columna);
+                    this.documento.Select(i, lexema.Length);
+                    this.documento.SelectionColor = Color.Brown;
                     break;
                     
             }

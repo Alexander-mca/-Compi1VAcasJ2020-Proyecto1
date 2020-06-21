@@ -8,31 +8,28 @@ namespace WindowsFormsApp1.Analizadores
 {
     class Token
     {
-        String lexema;
-        TipoError error;
-        Tipo tipo;
-        int fila, columna;
+        public String Lexema;
+        public TipoError Error;
+        public Tipo TipoToken;
+        public int Fila, Columna;
 
         public Token(Tipo tipo, String lexema,int fila,int columna)
         {
-            this.tipo = tipo;
-            this.lexema = lexema;
-            this.fila = fila;
-            this.columna = columna;
+            this.TipoToken = tipo;
+            this.Lexema = lexema;
+            this.Fila = fila;
+            this.Columna = columna;
         }
         public Token(TipoError error, String descripcion, int fila, int columna)
         {
-            this.error = error;
-            this.lexema = descripcion;
-            this.fila = fila;
-            this.columna = columna;
+            this.Error = error;
+            this.Lexema = descripcion;
+            this.Fila = fila;
+            this.Columna = columna;
         }
 
-        public string Lexema { get => lexema; set => lexema = value; }
-        public int Fila { get => fila; set => fila = value; }
-        public int Columna { get => columna; set => columna = value; }
-        internal TipoError Error { get => error; set => error = value; }
-        internal Tipo TipoToken { get => tipo; set => tipo = value; }
+        
+        
 
         public enum Tipo
         {

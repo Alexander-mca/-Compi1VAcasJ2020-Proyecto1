@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using WindowsFormsApp1.Analizadores;
 using WindowsFormsApp1.Tablas;
+using static WindowsFormsApp1.Tablas.Tabla;
 
 namespace WindowsFormsApp1
 {
@@ -19,7 +20,8 @@ namespace WindowsFormsApp1
         SaveFileDialog save;
         List<Token> ListaTokens = new List<Token>();
         List<Token> Errores = new List<Token>();
-        Dictionary<Tabla,String> Tablas = new Dictionary<Tabla,String>();
+        Dictionary<String,Tabla> Tablas = new Dictionary<String,Tabla>();
+        Nodo arbolDervicacion;
         public Form1()
         {
             InitializeComponent();
@@ -42,16 +44,16 @@ namespace WindowsFormsApp1
             LineNumberTextBox.SelectionAlignment = HorizontalAlignment.Center;
             // set LineNumberTextBox text to null & width to getWidth() function value    
             LineNumberTextBox.Text = "";
-            LineNumberTextBox.Width = getWidth();
+            //LineNumberTextBox.Width = getWidth();
             // now add each line number to LineNumberTextBox upto last line    
-            for (int i = First_Line; i <= Last_Line + 2; i++)
+            for (int i = First_Line; i <= richTextBox1.Lines.Length; i++)
             {
                 LineNumberTextBox.Text += i + 1 + "\n";
             }
         }
         public int getWidth()
         {
-            int w = 25;
+            int w = 22;
             // get total lines of richTextBox1    
             int line = richTextBox1.Lines.Length;
 
@@ -247,27 +249,33 @@ namespace WindowsFormsApp1
 
         private void ejecutarToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            String texto = richTextBox1.Text;
-            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens, texto);
-            //if (scanner.getErrores().Count != 0)
-            //{
-            //    MessageBox.Show("Existen Errores Léxicos.");
-            //}
+            Ejecutar();
+
+        }
+        public void Ejecutar()
+        {
+            this.ListaTokens.Clear();
+            this.Errores.Clear();
+            
+            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens,richTextBox1);           
             this.ListaTokens = scanner.getListaDeTokens();
+            List<Token> tokens = QuitarComentarios(this.ListaTokens);
             this.Errores = scanner.getErrores();
-            Parser_201700539 parser = new Parser_201700539(this.ListaTokens, this.Errores);
+            Parser_201700539 parser = new Parser_201700539(tokens, this.Errores);
+            this.arbolDervicacion = parser.getArbol();
             if (parser.getErrores().Count != 0)
             {
                 MessageBox.Show("Existen Errores");
+                return;
             }
-            
-
+            Ejecutar ejecuta = new Ejecutar(tokens, this.Errores, this.Tablas);
+            MessageBox.Show("Proceso de Ejecución Terminado");
         }
 
         private void cargarTablasToolStripMenuItem_Click(object sender, EventArgs e)
         {
             abrir = new OpenFileDialog();
-            String texto;
+            String texto="";
             abrir.Filter = "Archivos de texto (*.SQLE)|*.SQLE";
             if (abrir.ShowDialog() == DialogResult.OK)
             {
@@ -277,19 +285,20 @@ namespace WindowsFormsApp1
                 arch.Close();
 
             }
+            richTextBox1.Text = texto;
            
-            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens, texto);
-            //if (scanner.getErrores().Count != 0)
-            //{
-            //    MessageBox.Show("Existen Errores Léxicos.");
-            //}
-            this.ListaTokens = scanner.getListaDeTokens();
-            this.Errores = scanner.getErrores();
-            Parser_201700539 parser = new Parser_201700539(this.ListaTokens, this.Errores);
-            if (parser.getErrores().Count != 0)
+        }
+        private List<Token> QuitarComentarios(List<Token> list)
+        {
+            List<Token> tokens = list;
+            foreach (Token item in tokens)
             {
-                MessageBox.Show("Existen Errores");
+                if(item.TipoToken.Equals(Token.Tipo.ComentLinea) || item.TipoToken.Equals(Token.Tipo.ComentMult))
+                {
+                    tokens.Remove(item);
+                }
             }
+            return tokens;
         }
 
         private void verTablasToolStripMenuItem_Click(object sender, EventArgs e)
@@ -298,9 +307,112 @@ namespace WindowsFormsApp1
             {
                 MessageBox.Show("No hay tablas cargadas");
                 return;
-            }
+            }//se procede a mostrar una ventana con la informacion de las tablas
+            StringBuilder data = new StringBuilder();
+            VerTablas(data);
+            String archivo = data.ToString();
+            System.Diagnostics.Process.Start("Tablas.html",archivo);
+            
+        }
 
-            //se procede a mostrar una ventana con la informacion de las tablas
+        private void VerTablas(StringBuilder buffer)
+        {
+            buffer.Append("<html><head><title>Tablas</title></head><body>");
+            foreach(Tabla tabla in this.Tablas.Values)
+            {
+                buffer.Append("<h2><center>").Append(tabla.getId()).Append("</center></h2><br/><table>");
+                foreach (Columna columna in tabla.getColumnas())
+                {
+                    buffer.Append("<td>");
+                   
+                    for (int j = 0; j <columna.Datos.Count; j++)
+                    {
+                        Token tk = columna.Datos[j];
+                        if (j == 0)
+                        {
+                            buffer.Append("<th>").Append(columna.Id).Append("</th>");
+                            continue;
+                        }
+                        buffer.Append("<tr>").Append(tk.Lexema).Append("</tr>");
+                    }
+                    buffer.Append("</td>");
+
+                }
+                buffer.Append("</table><br/><br/>");
+            }
+            buffer.Append("</body></html>");
+            
+
+        }
+
+        private void mostrarÁrbolDeDerivaciónToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.arbolDervicacion != null)
+            {
+                GraficarArbolD arbol = new GraficarArbolD(this.arbolDervicacion);
+            }
+            else
+            {
+                MessageBox.Show("No se puede mostrar el arbol de derivacion.\nCiertos componentes no han sido ejecutados");
+            }
+        }
+
+        private void mostraTokensToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.ListaTokens.Count == 0)
+            {
+                MessageBox.Show("Los archivos no han sido analizados");
+                return;
+            }
+            StringBuilder data = new StringBuilder();
+            String info = data.ToString();
+            System.Diagnostics.Process.Start("Tokens.html", info);
+
+        }
+        private void ReporteTokens(StringBuilder buffer)
+        {
+            buffer.Append("<html><head><title>Reporte de Tokens</title></head><body><h1><center>Reporte de Tokens</center></h1><br/><table>");
+            buffer.Append("<tr><th>Token</th><th>Tipo</th><th>Lexema</th><th>Linea</th><th>Columna</th></tr>");
+            for (int i = 0; i < this.ListaTokens.Count; i++)
+            {
+                Token tk = this.ListaTokens[i];
+                buffer.Append("<tr>");
+                buffer.Append("<td>").Append((int)tk.TipoToken).Append("</td>");
+                buffer.Append("<td>").Append(tk.TipoToken.ToString()).Append("</td>");
+                buffer.Append("<td>").Append(tk.Lexema).Append("</td>");
+                buffer.Append("<td>").Append(tk.Fila).Append("</td>");
+                buffer.Append("<td>").Append(tk.Columna).Append("</td></tr>");
+
+            }
+            buffer.Append("</table></body></html>");
+        }
+        private void ReporteErrores(StringBuilder buffer)
+        {
+            buffer.Append("<html><head><title>Reporte de Tokens</title></head><body><h1><center>Reporte de Errores</center></h1><br/><table>");
+            buffer.Append("<tr><th>Tipo de Error</th><th>Descripcion</th><th>Linea</th><th>Columna</th></tr>");
+            for (int i = 0; i < this.Errores.Count; i++)
+            {
+                Token tk = this.Errores[i];
+                buffer.Append("<tr>");
+                buffer.Append("<td>").Append(tk.Error.ToString()).Append("</td>");
+                buffer.Append("<td>").Append(tk.Lexema).Append("</td>");
+                buffer.Append("<td>").Append(tk.Fila).Append("</td>");
+                buffer.Append("<td>").Append(tk.Columna).Append("</td></tr>");
+
+            }
+            buffer.Append("</table></body></html>");
+        }
+
+        private void mostrarErroresToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.Errores.Count == 0)
+            {
+                MessageBox.Show("No sugieron errores durante el analisis.");
+                return;
+            }
+            StringBuilder data = new StringBuilder();
+            String info = data.ToString();
+            System.Diagnostics.Process.Start("Errores.html", info);
         }
     }
 }

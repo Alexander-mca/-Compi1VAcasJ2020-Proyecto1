@@ -3,29 +3,36 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WindowsFormsApp1.Tablas;
+using static WindowsFormsApp1.Tablas.Tabla;
 
 namespace WindowsFormsApp1.Analizadores
 {
-    class Parser_201700539
+    class Ejecutar
     {
         List<Token> tokens = new List<Token>();
         List<Token> errores = new List<Token>();
+        Dictionary<String,Tabla> tablas = new Dictionary<String,Tabla>();
         int i;
         Token preanalisis;
-        public Parser_201700539(List<Token> tokens,List<Token> Errores)
+        public Ejecutar(List<Token> tokens,List<Token> Errores,Dictionary<String,Tabla> tablas)
         {
             this.tokens = tokens;
             this.errores = Errores;
+            this.tablas = tablas;
+            this.i = 0;
             this.preanalisis = tokens[i];
             this.tokens.Add(new Token(Token.Tipo.dolar, "$", 0, 0));
-            this.i = 0;
+            
             INICIO();
         }
-        public Token.Tipo Match(Token.Tipo tk,String descripcion)
+        public Token Match(Token.Tipo tk,String descripcion)
         { Token.Tipo tipo = preanalisis.TipoToken;
             if (tk.Equals(tipo))
             {
-                preanalisis = getNextToken();               
+                Token valor = preanalisis;
+                preanalisis = getNextToken();
+                return valor;
             }
             else
             {
@@ -34,7 +41,7 @@ namespace WindowsFormsApp1.Analizadores
             }
             
 
-            return tipo;
+            return null;
         }
         private void Panic()
         {
@@ -76,6 +83,10 @@ namespace WindowsFormsApp1.Analizadores
             if (!preanalisis.TipoToken.Equals(Token.Tipo.dolar))
             {
                 INSTRUCCIONES();
+            }
+            else
+            {
+                return;
             }
             
         }
@@ -164,51 +175,68 @@ namespace WindowsFormsApp1.Analizadores
         }
         private void CONDICION()
         {
-            COMP();
-            TIPOCOMP();
-            COMP();
+            Object valor1=COMP();
+            String operador=TIPOCOMP();
+            Object valor2=COMP();
+            if(valor1 is Columna && valor2 is Columna)
+            {
+
+            }
+            else
+            {
+                
+            }
         }
-        private void TIPOCOMP()
+        private String TIPOCOMP()
         {
+            String operador = "";
             switch (preanalisis.TipoToken)
             {
                 case Token.Tipo.mayor:
-                    Match(Token.Tipo.mayor, "Se esperaba un >");
-                    TC1();
+                    operador= Match(Token.Tipo.mayor, "Se esperaba un >").Lexema;
+                    operador+=TC1();
                     break;
                 case Token.Tipo.menor:
-                    Match(Token.Tipo.menor, "Se esperaba <");
-                    TC1();
+                   operador= Match(Token.Tipo.menor, "Se esperaba <").Lexema;
+                    operador+=TC1();
                     break;
                 case Token.Tipo.diferente:
-                    Match(Token.Tipo.diferente, "Se esperaba !");
-                    Match(Token.Tipo.igual, "Se esperaba un =");
+                    operador=Match(Token.Tipo.diferente, "Se esperaba !").Lexema;
+                    operador+=Match(Token.Tipo.igual, "Se esperaba un =").Lexema;
                     break;
                 case Token.Tipo.igual:
-                    Match(Token.Tipo.igual, "Se esperaba un =");
+                    operador=Match(Token.Tipo.igual, "Se esperaba un =").Lexema;
                     break;
                 default:
                     Errores("Se esperaba un >,<,! o un = y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
                     Panic();
                     break;
             }
+            return operador;
         }
-        private void TC1()
+        private String TC1()
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.igual))
             {
-                Match(Token.Tipo.igual, "Se esperaba un =");
+                return Match(Token.Tipo.igual, "Se esperaba un =").Lexema;
             }
+            return null;
         }
-        private void COMP()
+        private Object COMP()
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
-                Match(Token.Tipo.id, "Se esperaba un id");
+               String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+               Match(Token.Tipo.punto, "Se esperaba un .");
+               String idColum=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+                Tabla tabla = tablas[nombreTabla];
+                Columna columna = tabla.getColumna(idColum);
+                return columna;
+              
             }
             else
             {
-                VALOR();
+                return VALOR();
             }
         }
         private void CONDICIONES()
@@ -276,70 +304,91 @@ namespace WindowsFormsApp1.Analizadores
         private void INSERTAR()
         {
             Match(Token.Tipo.en, "Se esperaba la palabra Reservada En");
-            Match(Token.Tipo.id, "Se esperaba un id ");
+            //se obtiene el nombre de la tabla
+            String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id ").Lexema;
             Match(Token.Tipo.valores, "Se esperaba la palabra Reservada Valores");
             Match(Token.Tipo.parAbre, "Se esperaba un (");
-            VALOR();
-            VALORES();
+            //se obtienen los valores que se van a insertar
+            Token valor=VALOR();
+            List<Token> valores = new List<Token>();
+            valores.Add(valor);
+            VALORES(valores);
             Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            //se verifica que la tabla que se esta pidiendo haya sido creada
+            if (this.tablas.ContainsKey(nombreTabla))
+            {  //se procede a meter los valores
+                Tabla tabla = this.tablas[nombreTabla];
+                tabla.Insertar(valores);
+                this.tablas[nombreTabla] = tabla;
+            }
            
         }
-        private void VALOR()
+        private Token VALOR()
         {
+            Token valor =null;
             switch (preanalisis.TipoToken)
             {
                 case Token.Tipo.entero:
-                    Match(Token.Tipo.entero, "Se esperaba un número tipo entero");
+                    valor=Match(Token.Tipo.entero, "Se esperaba un número tipo entero");
                     break;
                 case Token.Tipo.flotante:
-                    Match(Token.Tipo.flotante, "Se esperaba un número tipo flotante");
+                    valor=Match(Token.Tipo.flotante, "Se esperaba un número tipo flotante");
                     break;
                 case Token.Tipo.cadena:
-                    Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
+                    valor=Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
                     break;
                 case Token.Tipo.fecha:
-                    Match(Token.Tipo.fecha, "Se esperaba un valor tipo fecha");
+                    valor=Match(Token.Tipo.fecha, "Se esperaba un valor tipo fecha");
                     break;
                 default:
                     Errores("Se esperaba un valor tipo entero, flotante, fecha o cadena y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
                     Panic();
                     break;
             }
+            return valor;
         }
-        private void VALORES()
+        private void VALORES(List<Token> valores)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
-                VALOR();
-                VALORES();
+                Token valor=VALOR();
+                valores.Add(valor);
+                VALORES(valores);
             }
         }
          private void CREARTABLA()
         {            
             Match(Token.Tipo.tabla, "Se esperaba la palabra Reservada Tabla");
-            Match(Token.Tipo.id, "Se esperaba un id");
+            //se obtiene el nombre de la tabla que se va a crear
+            String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
             Match(Token.Tipo.parAbre, "Se esperaba un (");
-            Match(Token.Tipo.id, "Se esperaba un id");
+            //se obtiene los nombres de las columnas
+            String idColumna =Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            List<String> columnas = new List<String>();
+            columnas.Add(idColumna);
             TIPO();
-            CAMPOS();
+            CAMPOS(columnas);
             Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            if (!this.tablas.ContainsKey(nombreTabla))
+            {
+                Tabla tabla = new Tabla(columnas, nombreTabla);
+                tablas.Add(nombreTabla, tabla);
+            }
         }
-        private void CAMPOS()
+        private void CAMPOS(List<String> entradas)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id ");
+                String idColumna= Match(Token.Tipo.id, "Se esperaba un id ").Lexema;
+                entradas.Add(idColumna);
                 TIPO();
-                CAMPOS();
+                CAMPOS(entradas);
             }
-            else
-            {
-
-            }
+            
         }
         private void TIPO()
         {

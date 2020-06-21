@@ -3,34 +3,43 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WindowsFormsApp1.Tablas;
 
 namespace WindowsFormsApp1.Analizadores
 {
     class Parser_201700539
     {
-        List<Token> tokens = new List<Token>();
-        List<Token> errores = new List<Token>();
+        List<Token> tokens;
+        List<Token> errores;
+        Nodo arbolSintactico;
         int i;
         Token preanalisis;
         public List<Token> getErrores()
         {
             return this.errores;
         }
-        public Parser_201700539(List<Token> tokens,List<Token> Errores)
+        public Nodo getArbol()
         {
+            return this.arbolSintactico;
+        }
+        public Parser_201700539(List<Token> tokens, List<Token> Errores)
+        {   //se deben eliminar los comentarios
             this.tokens = tokens;
             this.errores = Errores;
             this.i = 0;
             this.preanalisis = tokens[i];
             this.tokens.Add(new Token(Token.Tipo.dolar, "$", 0, 0));
-            
-            INICIO();
+            Nodo nodo1 = new Nodo("INICIO");
+            INICIO(nodo1);
+            this.arbolSintactico = nodo1;
         }
-        public Token.Tipo Match(Token.Tipo tk,String descripcion)
+        private Token Match(Token.Tipo tk,String descripcion)
         { Token.Tipo tipo = preanalisis.TipoToken;
             if (tk.Equals(tipo))
             {
-                preanalisis = getNextToken();               
+                Token tok = preanalisis;
+                preanalisis = getNextToken();
+                return tok;
             }
             else
             {
@@ -39,7 +48,7 @@ namespace WindowsFormsApp1.Analizadores
             }
             
 
-            return tipo;
+            return null;
         }
         private void Panic()
         {
@@ -67,130 +76,219 @@ namespace WindowsFormsApp1.Analizadores
 
         }
 
-         public void INICIO()
+         private void INICIO(Nodo nodo)
         {
-            INSTRUCCIONES();
+            Nodo nodo1 = new Nodo("INSTRUCCIONES");
+            INSTRUCCIONES(nodo1);
+            nodo.Agregar(nodo1);
         }
-        private void INSTRUCCIONES()
+        private void INSTRUCCIONES(Nodo nodo)
         {
-            INSTRUCCION();
-            INSTRUCIONES1();
-        }
-        private void INSTRUCIONES1()
-        {
+            Nodo nodo1 = new Nodo("INSTRUCCION");
+            Nodo nodo2 = new Nodo("INSTRUCCIONES");
+            INSTRUCCION(nodo1);
             if (!preanalisis.TipoToken.Equals(Token.Tipo.dolar))
             {
-                INSTRUCCIONES();
+
+                INSTRUCCIONES(nodo2);
             }
+            else
+            {
+                return;
+            }
+            nodo.Agregar(nodo1);
+            nodo.Agregar(nodo2);
             
         }
-        private void INSTRUCCION()
+        //private void INSTRUCIONES1()
+        //{
+        //    if (!preanalisis.TipoToken.Equals(Token.Tipo.dolar))
+        //    {
+        //        INSTRUCCIONES();
+        //    }
+
+        //}
+        private void INSTRUCCION(Nodo nodo)
         {
+            Nodo nodo1=null;
+            Token tk=null;
             switch (preanalisis.TipoToken) {
                 case Token.Tipo.crear:
-                    Match(Token.Tipo.crear, "Se esperaba palabra reservada Crear");
-                 CREARTABLA();
+                  tk= Match(Token.Tipo.crear, "Se esperaba palabra reservada Crear");
+                    nodo1 = new Nodo("CREARTABLA");
+                 CREARTABLA(nodo1);
                     break;
                 case Token.Tipo.insertar:
-                    Match(Token.Tipo.insertar, "Se esperaba palabra reservada Insertar");
-                    INSERTAR();
+                    tk=Match(Token.Tipo.insertar, "Se esperaba palabra reservada Insertar");
+                    nodo1 = new Nodo("INSERTAR");
+                    INSERTAR(nodo1);
                     break;
                 case Token.Tipo.seleccionar:
-                    Match(Token.Tipo.seleccionar, "Se esperaba la palabra Reservada Seleccionar");
-                    SELECCIONAR();
+                    tk=Match(Token.Tipo.seleccionar, "Se esperaba la palabra Reservada Seleccionar");
+                    nodo1 = new Nodo("SELECCIONAR");
+                    SELECCIONAR(nodo1);
                     break;
                 case Token.Tipo.eliminar:
-                    Match(Token.Tipo.eliminar, "Se esperaba la palabra Reservada Eliminar");
-                    ELIMINAR();
+                    tk=Match(Token.Tipo.eliminar, "Se esperaba la palabra Reservada Eliminar");
+                    nodo1 = new Nodo("ELIMINAR");
+                    ELIMINAR(nodo1);
                     break;
                 case Token.Tipo.actualizar:
-                    Match(Token.Tipo.actualizar, "Se esperaba la palabra Reservada Actualizar");
-                    ACTUALIZAR();
+                    tk=Match(Token.Tipo.actualizar, "Se esperaba la palabra Reservada Actualizar");
+                    nodo1 = new Nodo("ACTUALIZAR");
+                    ACTUALIZAR(nodo1);
                     break;
             }
+            if (tk != null)
+            {
+                nodo.Agregar(new Nodo(tk.Lexema));
+                nodo.Agregar(nodo1);
+            }
         }
-        private void ACTUALIZAR()
+        private void ACTUALIZAR(Nodo nodo)
         {
-            Match(Token.Tipo.id, "Se esperaba un id");
-            Match(Token.Tipo.establecer, "Se esperaba la palabra Reservada Establecer");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            Match(Token.Tipo.igual, "Se espeaba un =");
-            VALOR();
-            ACTUALIZA();
-            Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-            CONDICION();
-            CONDICIONES();
-            Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            Token tk1 = Match(Token.Tipo.id, "Se esperaba un id");
+            Token tk2 = Match(Token.Tipo.establecer, "Se esperaba la palabra Reservada Establecer");
+            Token tk3 = Match(Token.Tipo.id, "Se esperaba un id");
+            Token tk4 = Match(Token.Tipo.igual, "Se espeaba un =");
+            Nodo ndv = new Nodo("VALOR");
+            VALOR(ndv);
+            Nodo nda = new Nodo("ACTUALIZA");
+            ACTUALIZA(nda);
+            Token tk5 = Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
+            Nodo ndc = new Nodo("CONDICION");
+            CONDICION(ndc);
+            Nodo ndcs = new Nodo("CONDICIONES");
+            CONDICIONES(ndcs);
+            Token tk6 = Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            nodo.Agregar(new Nodo(tk1.Lexema));
+            nodo.Agregar(new Nodo(tk2.Lexema));
+            nodo.Agregar(new Nodo(tk3.Lexema));
+            nodo.Agregar(new Nodo(tk4.Lexema));
+            nodo.Agregar(nda);
+            nodo.Agregar(new Nodo(tk5.Lexema));
+            nodo.Agregar(ndc);
+            nodo.Agregar(ndcs);
+            nodo.Agregar(new Nodo(tk6.Lexema));
         }
-        private void ACTUALIZA()
+        private void ACTUALIZA(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
-                Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                Match(Token.Tipo.igual, "Se esperaba un =");
-                VALOR();
-                ACTUALIZA();
+               Token tk1= Match(Token.Tipo.coma, "Se esperaba una ,");
+               Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
+               Token tk3= Match(Token.Tipo.igual, "Se esperaba un =");
+                Nodo ndv = new Nodo("VALOR");
+                VALOR(ndv);
+                Nodo nda = new Nodo("ACTUALIZA");
+                ACTUALIZA(nda);
+                nd.Agregar(new Nodo(tk1.Lexema));
+                nd.Agregar(new Nodo(tk2.Lexema));
+                nd.Agregar(new Nodo(tk3.Lexema));
+                nd.Agregar(ndv);
+                nd.Agregar(nda);
+            }
+            else
+            {
+                nd.Agregar(new Nodo("ε"));
             }
         }
-        private void ELIMINAR()
+        private void ELIMINAR(Nodo nodo)
         {
-            Match(Token.Tipo.R_de, "Se esperaba la palabra Reservada De");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            ELIMINAR1();
-            Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
-
+            Token tk1=Match(Token.Tipo.R_de, "Se esperaba la palabra Reservada De");
+            Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
+            Nodo nde1 = new Nodo("ELIMINAR1");
+            ELIMINAR1(nde1);
+            Token tk3=Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            nodo.Agregar(new Nodo(tk1.Lexema));
+            nodo.Agregar(new Nodo(tk2.Lexema));
+            nodo.Agregar(nde1);
         }
-        private void ELIMINAR1()
+        private void ELIMINAR1(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.donde))
             {
-                Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-                CONDICION();
-                CONDICIONES();
+                Token tk1=Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
+                Nodo ndc = new Nodo("CONDICION");
+                CONDICION(ndc);
+                Nodo ndcs = new Nodo("CONDICIONES");
+                CONDICIONES(ndcs);
+                nd.Agregar(new Nodo(tk1.Lexema));
+                nd.Agregar(ndc);
+                nd.Agregar(ndcs);
             }
             else
             {
                 //servira para la ejecucion, cuando venga Eliminar tal Tabla1;
+                nd.Agregar(new Nodo("ε"));
             }
         }
-        private void SELECCIONAR()
+        private void SELECCIONAR(Nodo nodo)
         {
-            SELECCIONAR1();
-            SELECT();
-            Match(Token.Tipo.R_de, "Se esperaba la palabra reservada De");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            TABLA();
-            Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-            CONDICION();
-            CONDICIONES();
-            Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
-
+            Nodo nds1 = new Nodo("SELECCIONAR1");
+            SELECCIONAR1(nds1);
+            Nodo ndst = new Nodo("SELECT");
+            SELECT(ndst);
+            Token tk1=Match(Token.Tipo.R_de, "Se esperaba la palabra reservada De");
+            Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
+            Nodo tab = new Nodo("TABLA");
+            TABLA(tab);
+            Token tk3=Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
+            Nodo ndc = new Nodo("CONDICION");
+            CONDICION(ndc);
+            Nodo ndcs = new Nodo("CONDICIONES");
+            CONDICIONES(ndcs);
+            Token tk4=Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            nodo.Agregar(nds1);
+            nodo.Agregar(ndst);
+            nodo.Agregar(new Nodo(tk1.Lexema));
+            nodo.Agregar(new Nodo(tk2.Lexema));
+            nodo.Agregar(tab);
+            nodo.Agregar(new Nodo(tk3.Lexema));
+            nodo.Agregar(ndc);
+            nodo.Agregar(ndcs);
+            nodo.Agregar(new Nodo(tk4.Lexema));
         }
-        private void CONDICION()
+        private void CONDICION(Nodo nd)
         {
-            COMP();
-            TIPOCOMP();
-            COMP();
+            Nodo ndcp = new Nodo("COMP");
+            COMP(ndcp);
+            Nodo ndtc = new Nodo("TIPOCOMP");
+            TIPOCOMP(ndtc);
+            Nodo ndcp2 = new Nodo("COMP");
+            COMP(ndcp2);
+            nd.Agregar(ndcp);
+            nd.Agregar(ndtc);
+            nd.Agregar(ndcp2);
         }
-        private void TIPOCOMP()
+        private void TIPOCOMP(Nodo nd)
         {
+          
             switch (preanalisis.TipoToken)
             {
                 case Token.Tipo.mayor:
-                    Match(Token.Tipo.mayor, "Se esperaba un >");
-                    TC1();
+                    Token tk=Match(Token.Tipo.mayor, "Se esperaba un >");
+                    Nodo tc1 = new Nodo("TC1");
+                    TC1(tc1);
+                    nd.Agregar(new Nodo(tk.Lexema));
+                    nd.Agregar(tc1);
                     break;
                 case Token.Tipo.menor:
-                    Match(Token.Tipo.menor, "Se esperaba <");
-                    TC1();
+                    Token tk1=Match(Token.Tipo.menor, "Se esperaba <");
+                    Nodo nd2 = new Nodo("TC1");
+                    TC1(nd2);
+                    nd.Agregar(new Nodo(tk1.Lexema));
+                    nd.Agregar(nd2);
                     break;
                 case Token.Tipo.diferente:
-                    Match(Token.Tipo.diferente, "Se esperaba !");
-                    Match(Token.Tipo.igual, "Se esperaba un =");
+                    Token tok1=Match(Token.Tipo.diferente, "Se esperaba !");
+                    Token tok2=Match(Token.Tipo.igual, "Se esperaba un =");
+                    nd.Agregar(new Nodo(tok1.Lexema));
+                    nd.Agregar(new Nodo(tok2.Lexema));
                     break;
                 case Token.Tipo.igual:
-                    Match(Token.Tipo.igual, "Se esperaba un =");
+                    Token tigual=Match(Token.Tipo.igual, "Se esperaba un =");
+                    nd.Agregar(new Nodo(tigual.Lexema));
                     break;
                 default:
                     Errores("Se esperaba un >,<,! o un = y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
@@ -198,57 +296,97 @@ namespace WindowsFormsApp1.Analizadores
                     break;
             }
         }
-        private void TC1()
+        private void TC1(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.igual))
             {
-                Match(Token.Tipo.igual, "Se esperaba un =");
-            }
-        }
-        private void COMP()
-        {
-            if (preanalisis.TipoToken.Equals(Token.Tipo.id))
-            {
-                Match(Token.Tipo.id, "Se esperaba un id");
+               Token tk= Match(Token.Tipo.igual, "Se esperaba un =");
+                nd.Agregar(new Nodo(tk.Lexema));
             }
             else
             {
-                VALOR();
+                nd.Agregar(new Nodo("ε"));
             }
         }
-        private void CONDICIONES()
-        {
-            if (preanalisis.TipoToken.Equals(Token.Tipo.R_Y))
-            {
-                Match(Token.Tipo.R_Y, "Se esperaba la palabra reservada Y");
-                CONDICION();
-                CONDICIONES();
-            }else if (preanalisis.TipoToken.Equals(Token.Tipo.R_O))
-            {
-                Match(Token.Tipo.R_O, "Se esperaba la palabra reservada O");
-                CONDICION();
-                CONDICIONES();
-            }
-        }
-        private void TABLA()
-        {
-            if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
-            {
-                Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                TABLA();
-            }
-        }
-        private void SELECCIONAR1()
+        private void COMP(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
-                Match(Token.Tipo.id, "Se esperaba un id");
-                Match(Token.Tipo.punto, "Se esperaba un punto");
-                Match(Token.Tipo.id, "Se esperaba un id");
+                Token tk1=Match(Token.Tipo.id, "Se esperaba un id");
+                Token tk2=Match(Token.Tipo.punto, "Se esperaba un .");
+                Token tk3=Match(Token.Tipo.id, "Se esperaba un id");
+                nd.Agregar(new Nodo(tk1.Lexema));
+                nd.Agregar(new Nodo(tk2.Lexema));
+                nd.Agregar(new Nodo(tk3.Lexema));
+            }
+            else
+            {
+                Nodo ndv = new Nodo("VALOR");
+                VALOR(ndv);
+            }
+        }
+        private void CONDICIONES(Nodo nd)
+        {
+            
+            if (preanalisis.TipoToken.Equals(Token.Tipo.R_Y))
+            {
+                Token tk=Match(Token.Tipo.R_Y, "Se esperaba la palabra reservada Y");
+                Nodo ndc=new Nodo("CONDICION");
+                CONDICION(ndc);
+                Nodo ndcs = new Nodo("CONDICIONES");
+                CONDICIONES(ndcs);
+                nd.Agregar(new Nodo(tk.Lexema));
+                nd.Agregar(ndc);
+                nd.Agregar(ndcs);
+            }else if (preanalisis.TipoToken.Equals(Token.Tipo.R_O))
+            {
+               Token tk= Match(Token.Tipo.R_O, "Se esperaba la palabra reservada O");
+                Nodo ndc = new Nodo("CONDICION");
+                CONDICION(ndc);
+                Nodo ndcs = new Nodo("CONDICIONES");
+                CONDICIONES(ndcs);
+                nd.Agregar(new Nodo(tk.Lexema));
+                nd.Agregar(ndc);
+                nd.Agregar(ndcs);
+
+            }
+            else
+            {
+                nd.Agregar(new Nodo("ε"));
+            }
+        }
+        private void TABLA(Nodo nd)
+        {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
+            {
+                Token tk1=Match(Token.Tipo.coma, "Se esperaba una ,");
+                Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
+                Nodo ndt = new Nodo("TABLA");
+                TABLA(ndt);
+                nd.Agregar(new Nodo(tk1.Lexema));
+                nd.Agregar(new Nodo(tk2.Lexema));
+                nd.Agregar(ndt);
+            }
+            else
+            {
+                nd.Agregar(new Nodo("ε"));
+            }
+        }
+        private void SELECCIONAR1(Nodo nd)
+        {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.id))
+            {
+                Token tk=Match(Token.Tipo.id, "Se esperaba un id");
+                Token tk2=Match(Token.Tipo.punto, "Se esperaba un .");
+                Nodo ndso = new Nodo("SELECTO");
+                SELECTO(ndso);
+                nd.Agregar(new Nodo(tk.Lexema));
+                nd.Agregar(new Nodo(tk2.Lexema));
+                nd.Agregar(ndso);
             }else if (preanalisis.TipoToken.Equals(Token.Tipo.asterisco))
             {
-                Match(Token.Tipo.asterisco, "Se esperaba un *");
+                Token tk=Match(Token.Tipo.asterisco, "Se esperaba un *");
+                nd.Agregar(new Nodo(tk.Lexema));
             }
             else
             {
@@ -256,12 +394,36 @@ namespace WindowsFormsApp1.Analizadores
                 Panic();
             }
         }
-        private void SELECT()
+        private void SELECTO(Nodo nd)
+        {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.id))
+            {
+                Token tk = Match(Token.Tipo.id, "Se esperaba un id");
+                nd.Agregar(new Nodo(tk.Lexema));
+            }
+            else if(preanalisis.TipoToken.Equals(Token.Tipo.asterisco))
+            {
+                Token tk = Match(Token.Tipo.asterisco, "Se esperaba un *");
+                nd.Agregar(new Nodo(tk.Lexema));
+            }
+            else
+            {
+                Errores("Se esperaba un id o un * y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
+                Panic();
+            }
+        }
+        private void SELECT(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.como))
             {
-                Match(Token.Tipo.como, "Se esperaba la palabra reservada Como");
-                Match(Token.Tipo.id, "Se esperaba un id");
+                Token tk=Match(Token.Tipo.como, "Se esperaba la palabra reservada Como");
+                Token tk1=Match(Token.Tipo.id, "Se esperaba un id");
+                nd.Agregar(new Nodo(tk.Lexema));
+                nd.Agregar(new Nodo(tk1.Lexema));
+            }
+            else
+            {
+                nd.Agregar(new Nodo("ε"));
             }
 
         }
@@ -278,94 +440,139 @@ namespace WindowsFormsApp1.Analizadores
                 TABLAS();
             }
         }
-        private void INSERTAR()
+        private void INSERTAR(Nodo nodo)
         {
-            Match(Token.Tipo.en, "Se esperaba la palabra Reservada En");
-            Match(Token.Tipo.id, "Se esperaba un id ");
-            Match(Token.Tipo.valores, "Se esperaba la palabra Reservada Valores");
-            Match(Token.Tipo.parAbre, "Se esperaba un (");
-            VALOR();
-            VALORES();
-            Match(Token.Tipo.parCierra, "Se esperaba un )");
-            Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
-           
+           Token tk1= Match(Token.Tipo.en, "Se esperaba la palabra Reservada En");
+            Token tk2=Match(Token.Tipo.id, "Se esperaba un id ");
+            Token tk3=Match(Token.Tipo.valores, "Se esperaba la palabra Reservada Valores");
+            Token tk4=Match(Token.Tipo.parAbre, "Se esperaba un (");
+            Nodo ndv = new Nodo("VALOR");
+            VALOR(ndv);
+            Nodo ndvs = new Nodo("VALORES");
+            VALORES(ndv);
+            Token tk5=Match(Token.Tipo.parCierra, "Se esperaba un )");
+            Token tk6=Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            nodo.Agregar(new Nodo(tk1.Lexema));
+            nodo.Agregar(new Nodo(tk2.Lexema));
+            nodo.Agregar(new Nodo(tk3.Lexema));
+            nodo.Agregar(new Nodo(tk4.Lexema));
+            nodo.Agregar(ndv);
+            nodo.Agregar(ndvs);
+            nodo.Agregar(new Nodo(tk5.Lexema));
+            nodo.Agregar(new Nodo(tk6.Lexema));
+            
         }
-        private void VALOR()
+        private void VALOR(Nodo nd)
         {
+            Token tk = null;
             switch (preanalisis.TipoToken)
             {
                 case Token.Tipo.entero:
-                    Match(Token.Tipo.entero, "Se esperaba un número tipo entero");
+                    tk=Match(Token.Tipo.entero, "Se esperaba un número tipo entero");
                     break;
                 case Token.Tipo.flotante:
-                    Match(Token.Tipo.flotante, "Se esperaba un número tipo flotante");
+                    tk=Match(Token.Tipo.flotante, "Se esperaba un número tipo flotante");
                     break;
                 case Token.Tipo.cadena:
-                    Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
+                    tk=Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
                     break;
                 case Token.Tipo.fecha:
-                    Match(Token.Tipo.fecha, "Se esperaba un valor tipo fecha");
+                    tk=Match(Token.Tipo.fecha, "Se esperaba un valor tipo fecha");
                     break;
                 default:
                     Errores("Se esperaba un valor tipo entero, flotante, fecha o cadena y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
                     Panic();
                     break;
             }
-        }
-        private void VALORES()
-        {
-            if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
+            if (tk != null)
             {
-                Match(Token.Tipo.coma, "Se esperaba una ,");
-                VALOR();
-                VALORES();
+                nd.Agregar(new Nodo(tk.Lexema));
             }
         }
-         private void CREARTABLA()
-        {            
-            Match(Token.Tipo.tabla, "Se esperaba la palabra Reservada Tabla");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            Match(Token.Tipo.parAbre, "Se esperaba un (");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            TIPO();
-            CAMPOS();
-            Match(Token.Tipo.parCierra, "Se esperaba un )");
-            Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
-        }
-        private void CAMPOS()
+        private void VALORES(Nodo nd)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
-                Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id ");
-                TIPO();
-                CAMPOS();
+               Token tk= Match(Token.Tipo.coma, "Se esperaba una ,");
+                Nodo ndv = new Nodo("VALOR");
+                VALOR(ndv);
+                Nodo ndvs = new Nodo("VALORES");
+                VALORES(ndvs);
             }
             else
             {
+                nd.Agregar(new Nodo("ε"));
 
             }
         }
-        private void TIPO()
+         private void CREARTABLA(Nodo nodo)
+        {            
+           Token tk1= Match(Token.Tipo.tabla, "Se esperaba la palabra Reservada Tabla");
+           Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
+           Token tk3=Match(Token.Tipo.parAbre, "Se esperaba un (");
+           Token tk4= Match(Token.Tipo.id, "Se esperaba un id");
+            Nodo ndt = new Nodo("TIPO");
+            TIPO(ndt);
+            Nodo ndc = new Nodo("CAMPOS");
+            CAMPOS(ndc);
+           Token tk5= Match(Token.Tipo.parCierra, "Se esperaba un )");
+           Token tk6= Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            nodo.Agregar(new Nodo(tk1.Lexema));
+            nodo.Agregar(new Nodo(tk2.Lexema));
+            nodo.Agregar(new Nodo(tk3.Lexema));
+            nodo.Agregar(new Nodo(tk4.Lexema));
+            nodo.Agregar(ndt);
+            nodo.Agregar(ndc);            
+            nodo.Agregar(new Nodo(tk5.Lexema));
+            nodo.Agregar(new Nodo(tk6.Lexema));
+        }
+        private void CAMPOS(Nodo nd)
         {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
+            {
+                Token tk1=Match(Token.Tipo.coma, "Se esperaba una ,");
+                Token tk2=Match(Token.Tipo.id, "Se esperaba un id ");
+                nd.Agregar(new Nodo(tk1.Lexema));
+                nd.Agregar(new Nodo(tk2.Lexema));
+                Nodo ndt = new Nodo("TIPO");
+                TIPO(ndt);
+                Nodo ndc = new Nodo("CAMPOS");
+                CAMPOS(ndc);
+                nd.Agregar(ndt);
+                nd.Agregar(ndc);
+                
+            }
+            else
+            {
+               nd.Agregar(new Nodo("ε"));
+            }
+           
+        }
+        private void TIPO(Nodo nd)
+        {
+            Token tk = null;
             switch (preanalisis.TipoToken)
             {
                 case Token.Tipo.R_entero:
-                    Match(Token.Tipo.R_entero, "Se espera la palabra reservada entero");
+                    tk=Match(Token.Tipo.R_entero, "Se espera la palabra reservada entero");
                     break;
                 case Token.Tipo.R_flotante:
-                    Match(Token.Tipo.R_flotante, "Se espera la palabra reservada flotante");
+                    tk=Match(Token.Tipo.R_flotante, "Se espera la palabra reservada flotante");
                     break;
                 case Token.Tipo.R_cadena:
-                    Match(Token.Tipo.R_entero, "Se espera la palabra reservada cadena");
+                    tk=Match(Token.Tipo.R_entero, "Se espera la palabra reservada cadena");
                     break;
                 case Token.Tipo.R_fecha:
-                    Match(Token.Tipo.R_fecha, "Se espera la palabra reservada fecha");
+                    tk=Match(Token.Tipo.R_fecha, "Se espera la palabra reservada fecha");
                     break;
                 default:
                     Errores("Se espera la palabra reservada entero, flotante, fecha o cadena y se obtuvo "+preanalisis.Lexema,preanalisis.Fila,preanalisis.Columna);
                     Panic();
                     break;
+            }
+            if (tk != null)
+            {
+                nd.Agregar(new Nodo(tk.Lexema));
             }
         }
 
