@@ -25,6 +25,7 @@ namespace WindowsFormsApp1
         public Form1()
         {
             InitializeComponent();
+            
         }
 
         public void AddLineNumbers()
@@ -215,7 +216,7 @@ namespace WindowsFormsApp1
 
         private void salirToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult dialogResult = MessageBox.Show("Advertencia", "¿Desea guardar el archivo?", MessageBoxButtons.YesNoCancel);
+            DialogResult dialogResult = MessageBox.Show("¿Desea guardar el archivo?", "Advertencia", MessageBoxButtons.YesNoCancel);
             if (dialogResult == DialogResult.Yes)
             {
                 if (abrir != null)
@@ -239,6 +240,10 @@ namespace WindowsFormsApp1
                         w.SaveFile(save.FileName, RichTextBoxStreamType.PlainText);
                     }
                 }
+                this.Dispose();
+            }else if (dialogResult == DialogResult.No)
+            {
+                this.Dispose();
             }
         }
 
@@ -259,7 +264,8 @@ namespace WindowsFormsApp1
             
             Scanner_201700539 scanner = new Scanner_201700539(ListaTokens,richTextBox1);           
             this.ListaTokens = scanner.getListaDeTokens();
-            List<Token> tokens = QuitarComentarios(this.ListaTokens);
+            List<Token> tokens = this.ListaTokens;
+            QuitarComentarios(ref tokens);
             this.Errores = scanner.getErrores();
             Parser_201700539 parser = new Parser_201700539(tokens, this.Errores);
             this.arbolDervicacion = parser.getArbol();
@@ -288,7 +294,7 @@ namespace WindowsFormsApp1
             richTextBox1.Text = texto;
            
         }
-        private List<Token> QuitarComentarios(List<Token> list)
+        private void QuitarComentarios(ref List<Token> list)
         {
             List<Token> tokens = list;
             foreach (Token item in tokens)
@@ -298,7 +304,7 @@ namespace WindowsFormsApp1
                     tokens.Remove(item);
                 }
             }
-            return tokens;
+           
         }
 
         private void verTablasToolStripMenuItem_Click(object sender, EventArgs e)
@@ -310,35 +316,38 @@ namespace WindowsFormsApp1
             }//se procede a mostrar una ventana con la informacion de las tablas
             StringBuilder data = new StringBuilder();
             VerTablas(data);
+            StreamWriter streamWriter = new StreamWriter("Tablas.html");
             String archivo = data.ToString();
-            System.Diagnostics.Process.Start("Tablas.html",archivo);
+            streamWriter.WriteLine(archivo);
+            streamWriter.Close();
+            System.Diagnostics.Process.Start("Tablas.html");
             
         }
 
         private void VerTablas(StringBuilder buffer)
         {
-            buffer.Append("<html><head><title>Tablas</title></head><body>");
+            buffer.Append("<html><head><title>Tablas</title>").Append("<style>table, th, td {border: 1px solid black;border - collapse: collapse;");
+            buffer.Append( "  } \nth, td { padding: 5px;  } \nth { text - align: left; }</style></head><body>");
             foreach(Tabla tabla in this.Tablas.Values)
             {
-                buffer.Append("<h2><center>").Append(tabla.getId()).Append("</center></h2><br/><table>");
-                foreach (Columna columna in tabla.getColumnas())
+                buffer.Append("<h2><center>").Append(tabla.getId()).Append("</center></h2><br/><div><center><table>");
+                List<Columna> columnas = tabla.getColumnas();
+                buffer.Append("<tr>");
+                foreach(Columna item in columnas)
                 {
-                    buffer.Append("<td>");
-                   
-                    for (int j = 0; j <columna.Datos.Count; j++)
-                    {
-                        Token tk = columna.Datos[j];
-                        if (j == 0)
-                        {
-                            buffer.Append("<th>").Append(columna.Id).Append("</th>");
-                            continue;
-                        }
-                        buffer.Append("<tr>").Append(tk.Lexema).Append("</tr>");
-                    }
-                    buffer.Append("</td>");
-
+                    buffer.Append("<th>").Append(item.Id).Append("</th>");
                 }
-                buffer.Append("</table><br/><br/>");
+                buffer.Append("</tr>");
+                for (int i = 0; i <columnas[0].Datos.Count; i++)
+                {
+                    buffer.Append("<tr>");
+                    foreach(Columna item in columnas)
+                    {
+                        buffer.Append("<td>").Append(item.Datos[i].Lexema).Append("</td>");
+                    }
+                    buffer.Append("</tr>");
+                }
+                buffer.Append("</center></div></table><br/><br/>");
             }
             buffer.Append("</body></html>");
             
@@ -365,13 +374,19 @@ namespace WindowsFormsApp1
                 return;
             }
             StringBuilder data = new StringBuilder();
+            ReporteTokens(data);
             String info = data.ToString();
-            System.Diagnostics.Process.Start("Tokens.html", info);
+            StreamWriter dat = new StreamWriter("201700539_tok.html");
+            dat.WriteLine(data);
+            dat.Close();
+            System.Diagnostics.Process.Start("201700539_tok.html");
 
         }
         private void ReporteTokens(StringBuilder buffer)
         {
-            buffer.Append("<html><head><title>Reporte de Tokens</title></head><body><h1><center>Reporte de Tokens</center></h1><br/><table>");
+            buffer.Append("<html><head><title>Reporte de Tokens</title>").Append("<style>table, th, td {border: 1px solid black;border - collapse: collapse;");
+            buffer.Append("  }\n th, td { padding: 5px;  } \nth { text - align: left; }</style></head><body>");
+            buffer.Append("</head><body><h1><center>Reporte de Tokens</center></h1><br/><div><center><table>");
             buffer.Append("<tr><th>Token</th><th>Tipo</th><th>Lexema</th><th>Linea</th><th>Columna</th></tr>");
             for (int i = 0; i < this.ListaTokens.Count; i++)
             {
@@ -384,11 +399,14 @@ namespace WindowsFormsApp1
                 buffer.Append("<td>").Append(tk.Columna).Append("</td></tr>");
 
             }
-            buffer.Append("</table></body></html>");
+            buffer.Append("</table></center></div></body></html>");
         }
         private void ReporteErrores(StringBuilder buffer)
         {
-            buffer.Append("<html><head><title>Reporte de Tokens</title></head><body><h1><center>Reporte de Errores</center></h1><br/><table>");
+            buffer.Append("<html><head><title>Reporte de Errores</title>").Append("<style>table, th, td {border: 1px solid black;border - collapse: collapse;");
+            buffer.Append("  }\n th, td { padding: 5px;  } \nth { text - align: left; }</style></head><body>");
+            buffer.Append("</head><body><h1><center>Reporte de Tokens</center></h1><br/><div><center><table>");
+
             buffer.Append("<tr><th>Tipo de Error</th><th>Descripcion</th><th>Linea</th><th>Columna</th></tr>");
             for (int i = 0; i < this.Errores.Count; i++)
             {
@@ -400,7 +418,7 @@ namespace WindowsFormsApp1
                 buffer.Append("<td>").Append(tk.Columna).Append("</td></tr>");
 
             }
-            buffer.Append("</table></body></html>");
+            buffer.Append("</table></center></div></body></html>");
         }
 
         private void mostrarErroresToolStripMenuItem_Click(object sender, EventArgs e)
@@ -411,8 +429,49 @@ namespace WindowsFormsApp1
                 return;
             }
             StringBuilder data = new StringBuilder();
+            ReporteErrores(data);
             String info = data.ToString();
-            System.Diagnostics.Process.Start("Errores.html", info);
+            StreamWriter dt = new StreamWriter("201700539_err.html");
+            dt.WriteLine(data.ToString());
+            dt.Close();
+            System.Diagnostics.Process.Start("201700539_err.html");
+        }
+        private void Colorear(string text, Color color)
+        {
+            richTextBox1.SelectionStart = richTextBox1.Find(text);
+            richTextBox1.SelectionLength = text.Length-1;
+            richTextBox1.SelectionColor = color;            
+            richTextBox1.SelectionColor = richTextBox1.ForeColor;
+        }
+        private void  ColorearTexto()
+        {
+            foreach(Token tk in this.ListaTokens){
+                Token.Tipo tipo = tk.TipoToken;
+                if (tipo.Equals(Token.Tipo.entero) || tipo.Equals(Token.Tipo.flotante))
+                {
+                    Colorear(tk.Lexema, Color.Green);
+                }
+            }
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void manualTécnicpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("Manual Técnico.docx");
+        }
+
+        private void manualDeUsuarioToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("Manual de Usuario.docx");
+        }
+
+        private void acercaDeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Versión: 1.0\nCreador:Denis Alexander Morales Catalán\nCarné:201700539","Acerca De");
         }
     }
 }

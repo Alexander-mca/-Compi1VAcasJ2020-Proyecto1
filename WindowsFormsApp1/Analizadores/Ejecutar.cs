@@ -75,8 +75,15 @@ namespace WindowsFormsApp1.Analizadores
         }
         private void INSTRUCCIONES()
         {
-            INSTRUCCION();
-            INSTRUCIONES1();
+            if (!preanalisis.TipoToken.Equals(Token.Tipo.dolar))
+            {
+                INSTRUCCION();
+                INSTRUCIONES1();
+            }
+            else
+            {
+                return;
+            }
         }
         private void INSTRUCIONES1()
         {
@@ -119,10 +126,12 @@ namespace WindowsFormsApp1.Analizadores
         {
             Match(Token.Tipo.id, "Se esperaba un id");
             Match(Token.Tipo.establecer, "Se esperaba la palabra Reservada Establecer");
+            Match(Token.Tipo.parAbre, "Se esperaba un (");
             Match(Token.Tipo.id, "Se esperaba un id");
             Match(Token.Tipo.igual, "Se espeaba un =");
             VALOR();
             ACTUALIZA();
+            Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
             CONDICION();
             CONDICIONES();
@@ -401,7 +410,7 @@ namespace WindowsFormsApp1.Analizadores
                     Match(Token.Tipo.R_flotante, "Se espera la palabra reservada flotante");
                     break;
                 case Token.Tipo.R_cadena:
-                    Match(Token.Tipo.R_entero, "Se espera la palabra reservada cadena");
+                    Match(Token.Tipo.R_cadena, "Se espera la palabra reservada cadena");
                     break;
                 case Token.Tipo.R_fecha:
                     Match(Token.Tipo.R_fecha, "Se espera la palabra reservada fecha");

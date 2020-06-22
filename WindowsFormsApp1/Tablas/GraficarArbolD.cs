@@ -14,17 +14,25 @@ namespace WindowsFormsApp1.Tablas
         public GraficarArbolD(Nodo raiz)
         {
             StringBuilder contenido = new StringBuilder();
-            contenido.Append("digraph G{node[shape=circle fillcolor=green forecolor=black style=filled];");
+            contenido.Append("digraph D{node[shape=circle];\n");
             getNodos(raiz, contenido);
             getRelacion(raiz, contenido);
             contenido.Append("}");
 
-            StreamWriter dot = new StreamWriter("arbol.dot");
+            StreamWriter dot = new StreamWriter("arbol.txt");
             dot.WriteLine(contenido.ToString());
             dot.Close();
-            ProcessStartInfo startInfo = new ProcessStartInfo("dot.exe");
-            startInfo.Arguments = "-Tjpg arbol.dot -o arbol.jpg";
-            Process.Start(startInfo);
+           
+            String comando = "-Tpng arbol.txt -o arbol.png";
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments =comando;
+            process.StartInfo = startInfo;
+            process.Start();
+            System.Diagnostics.Process.Start("arbol.png");
+
         }
         private void getNodos(Nodo raiz,StringBuilder nodos)
         {

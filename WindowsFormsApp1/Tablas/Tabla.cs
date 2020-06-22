@@ -64,7 +64,7 @@ namespace WindowsFormsApp1.Tablas
                 foreach(Columna colum in this.columnas)
                 {   Token valor = dat[i];
                     colum.Datos.Add(valor);
-
+                    i++;
                 }
             }
         }
