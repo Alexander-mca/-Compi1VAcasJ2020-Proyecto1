@@ -10,171 +10,235 @@ namespace WindowsFormsApp1.Tablas
 {
     class Condicion
     {
-        Object valizq, valder;
+        Tabla tabla1, tabla2;
+        List<String> columnas;
         String operando;
+        Object valizq, valder;
 
-        public Condicion(Object valizq, Object valder, string operando)
+        public Condicion(List<String> columnas, Tabla tabla1, Tabla tabla2, Object valizq, Object valder, string operando)
         {
+            this.tabla1 = tabla1;
+            this.tabla2 = tabla2;
+            this.columnas = columnas;
             this.valizq = valizq;
             this.valder = valder;
             this.operando = operando;
         }
 
-        public bool Ejecutar()
-        {   
-            if(valizq is Columna && valder is Columna)
+        public Tabla Ejecutar()
+        {
+            Tabla tabla = new Tabla(this.columnas);
+            if (!(valizq is Columna))
             {
-                Columna val1 = (Columna)valizq;
-                Columna val2 = (Columna)valder;
-                for (int i = 0; i <val1.Datos.Count; i++)
+                //se compara valores de un token con una columna
+                Columna aux = (Columna)valder;
+                Token valor = (Token)valizq;
+                for (int k = 0; k < aux.Datos.Count; k++)
                 {
-                    Token tk1 = val1.Datos[i];
-                    for (int j = 0; j < val2.Datos.Count; j++)
+                    Token valcelda = aux.Datos[k];
+                    bool val = Validar(valcelda, valor);
+                    if (val)
                     {
-                        Token tk2 = val2.Datos[j];
-                        bool validar = ObtenerVal(tk1, tk2);
-                        if (validar)
-                        {
-
-                        }
+                        InsertarValores(tabla, this.tabla2, k);
                     }
                 }
-
-                return true;
+                return tabla;
             }
-            //if(valizq is Columna)
-            //{
-            //    for (int i = 0; i < length; i++)
-            //    {
+            if (!(valder is Columna))
+            {
+                //se comparan valores de una columna con un token
+                Columna aux = (Columna)valizq;
+                Token valor = (Token)valder;
+                for (int k = 0; k <aux.Datos.Count; k++)
+                {
+                    Token valcelda = aux.Datos[k];
+                    bool val = Validar(valcelda, valor);
+                    if (val)
+                    {
+                        InsertarValores(tabla, this.tabla1, k);
+                    }
+                }
+                return tabla;
+            }
+            //cuando ambos son columnas
+            Columna columna1 = (Columna)valizq;
+            Columna columna2 = (Columna)valder;
+            //List<Columna> tabla1 = this.tabla1.getColumnas();
+            //List<Columna> tabla2 = this.tabla2.getColumnas();
+            int i = 0;
+            int j = 0;
+            foreach (Token tk1 in columna1.Datos)
+            {
+                foreach (Token tk2 in columna2.Datos)
+                {
+                    bool valor = Validar(tk1, tk2);
+                    if (valor)
+                    {
 
-            //    }
-            //}
-            //if(valder is Columna)
-            //{
-            //    for (int i = 0; i < length; i++)
-            //    {
+                        InsertarValores(tabla, this.tabla1, i);
+                        InsertarValores(tabla, this.tabla2, j);
+                    }
+                    j++;
+                }
+                i++;
+            }
+            return tabla;
 
-            //    }
-            //}
-            
-            return false;
-        } 
+        }
 
-        public bool ObtenerVal(Token valizq,Token valder)
+        private void InsertarValores(Tabla table,Tabla tabla2,int j)
         {
-            
-            switch (valizq.TipoToken)
+            foreach (String columna in this.columnas)
+            {
+                Columna colum = tabla2.getColumna(columna);
+                if (colum != null)
+                {
+                    table.getColumna(columna).Datos.Add(colum.Datos[j]);
+
+                }
+            }
+        }
+
+        private bool Validar(Token tk,Token tk2)
+        {
+
+            switch (tk.TipoToken) 
             {
                 case Token.Tipo.entero:
-                    if (valder.TipoToken.Equals(Token.Tipo.entero))
+                    int a = int.Parse(tk.Lexema);
+                    switch (tk2.TipoToken)
                     {
-                        int valor1 = int.Parse(valizq.Lexema);
-                        int valor2 = int.Parse(valder.Lexema);
-                        switch (operando)
-                        {
-                            case ">":
-                                if (valor1 > valor2)
-                                    return true;
-                                break;
-                            case "<":
-                                if (valor1 < valor2)
-                                    return true;
-                                break;
-                            case ">=":
-                                if (valor1 >= valor2)
-                                    return true;
-                                break;
-                            case "<=":
-                                if (valor1 <= valor2)
-                                    return true;
-                                break;
-                            case "=":
-                                if (valor1 == valor2)
-                                    return true;
-                                break;
-                            case "!=":
-                                if (valor1 != valor2)
-                                    return true;
-                                break;
-
-                        }
+                        case Token.Tipo.entero:
+                            int b = int.Parse(tk2.Lexema);
+                            return Operar(a, b);                            
+                        case Token.Tipo.flotante:
+                            double b2 = double.Parse(tk2.Lexema);
+                            int bc = (int)b2;
+                           return Operar(a, bc);
+                        default:
+                            Console.WriteLine("Error Semantico. No se puede operar un valor tipo entero\ncon un valor tipo fecha o cadena.\nTipoToken1:" + tk.TipoToken.ToString() + "/TokenTipo2:" + tk2.TipoToken.ToString());
+                            break;
                     }
                     break;
                 case Token.Tipo.flotante:
-                    if (valder.TipoToken.Equals(Token.Tipo.flotante))
+                    double a2 = double.Parse(tk.Lexema);
+                    switch (tk2.TipoToken)
                     {
-                        double valor1 = double.Parse(valizq.Lexema);
-                        double valor2 = double.Parse(valder.Lexema);
-                        switch (operando)
-                        {
-                            case ">":
-                                if (valor1 > valor2)
-                                    return true;
-                                break;
-                            case "<":
-                                if (valor1 < valor2)
-                                    return true;
-                                break;
-                            case ">=":
-                                if (valor1 >= valor2)
-                                    return true;
-                                break;
-                            case "<=":
-                                if (valor1 <= valor2)
-                                    return true;
-                                break;
-                            case "=":
-                                if (valor1 == valor2)
-                                    return true;
-                                break;
-                            case "!=":
-                                if (valor1 != valor2)
-                                    return true;
-                                break;
-
-                        }
-
-                    }
-                    break;
-                case Token.Tipo.fecha:
-                    if (valder.TipoToken.Equals(Token.Tipo.fecha))
-                    {
-
-                        if (operando.Equals("="))
-                        {
-                            if (valizq.Lexema.Equals(valder.Lexema))
-                                return true;
-                        }
-                        else if (operando.Equals("!="))
-                        {
-                            if (!valizq.Lexema.Equals(valder.Lexema))
-                                return true;
-                        }
+                        case Token.Tipo.entero:
+                            int b = int.Parse(tk2.Lexema);
+                            double b2 = (double)b;
+                            return OperarFlotante(a2, b2);
+                        case Token.Tipo.flotante:
+                            double b3 = double.Parse(tk2.Lexema);                            
+                           return OperarFlotante(a2, b3);
+                        default:
+                            Console.WriteLine("Error Semantico. No se puede operar un valor tipo flotante\ncon un valor tipo fecha o cadena.\nTipoToken1:"+tk.TipoToken.ToString()+"/TokenTipo2:"+tk2.TipoToken.ToString());
+                            break;
                     }
                     break;
                 case Token.Tipo.cadena:
-                    if (valder.TipoToken.Equals(Token.Tipo.cadena))
+                    if (!tk2.TipoToken.Equals(Token.Tipo.cadena))
                     {
-
-                        if (operando.Equals("="))
+                        Console.WriteLine("Error Semantico.Los valores no pueden se comparados.\nTipoToken1:" + tk.TipoToken.ToString() + "/TokenTipo2:" + tk2.TipoToken.ToString());
+                        break;
+                    }
+                    if (operando.Equals("="))
+                    {
+                        if (tk.Lexema.Equals(tk2.Lexema))
                         {
-                            if (valizq.Lexema.Equals(valder.Lexema))
-                                return true;
+                            return true;
                         }
-                        else if (operando.Equals("!="))
+                    }else if (operando.Equals("!="))
+                    {
+                        if (!tk.Lexema.Equals(tk2.Lexema))
                         {
-                            if (!valizq.Lexema.Equals(valder.Lexema))
-                                return true;
+                            return true;
+                        }
+                    }
+                    break;
+                case Token.Tipo.fecha:
+                    if (!tk2.TipoToken.Equals(Token.Tipo.fecha))
+                    {
+                        Console.WriteLine("Error Semantico.Los valores no pueden se comparados.\nTipoToken1:" + tk.TipoToken.ToString() + "/TokenTipo2:" + tk2.TipoToken.ToString());
+                        break;
+                    }
+                    if (operando.Equals("="))
+                    {
+                        if (tk.Lexema.Equals(tk2.Lexema))
+                        {
+                            return true;
+                        }
+                    }
+                    else if (operando.Equals("!="))
+                    {
+                        if (!tk.Lexema.Equals(tk2.Lexema))
+                        {
+                            return true;
                         }
                     }
 
+                    break;
+            }
+            return false;
+        }
+
+        private bool Operar(int a,int b)
+        {
+            switch (operando)
+            {
+                case "<":
+                    if (a < b) return true;
+                    break;
+                case ">":
+                    if (a > b) return true;
+                    break;
+                case "=":
+                    if (a == b) return true;
+                    break;
+                case "!=":
+                    if (a != b) return true;
+                    break;
+                case ">=":
+                    if (a >= b) return true;
+                    break;
+                case "<=":
+                    if (a <= b) return true;
+                    break;
+                    
+            }
+            return false;
+        }
+
+        private bool OperarFlotante(double a, double b)
+        {
+            switch (operando)
+            {
+                case "<":
+                    if (a < b) return true;
+                    break;
+                case ">":
+                    if (a > b) return true;
+                    break;
+                case "=":
+                    if (a == b) return true;
+                    break;
+                case "!=":
+                    if (a != b) return true;
+                    break;
+                case ">=":
+                    if (a >= b) return true;
+                    break;
+                case "<=":
+                    if (a <= b) return true;
                     break;
 
             }
             return false;
         }
-        
 
-       
+
+
+
+
     }
 }

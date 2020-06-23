@@ -171,30 +171,34 @@ namespace WindowsFormsApp1.Analizadores
         }
         private void SELECCIONAR()
         {
-            SELECCIONAR1();
+            List<String> columnas = new List<string>();
+            SELECCIONAR1(columnas);
             SELECT();
             Match(Token.Tipo.R_de, "Se esperaba la palabra reservada De");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            TABLA();
+            Token tk=Match(Token.Tipo.id, "Se esperaba un id");
+            Dictionary<String, Tabla> tabs = new Dictionary<string, Tabla>();
+            Tabla tb1 = this.tablas[tk.Lexema];
+            tabs.Add(tk.Lexema,tb1);
+            TABLA(tabs);
             Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-            CONDICION();
+            Object obj=CONDICION();
+
             CONDICIONES();
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
 
         }
-        private void CONDICION()
+        private List<Object> CONDICION()
         {
+
             Object valor1=COMP();
             String operador=TIPOCOMP();
             Object valor2=COMP();
-            if(valor1 is Columna && valor2 is Columna)
-            {
+            List<Object> componentes = new List<object>();
+            componentes.Add(valor1);
+            componentes.Add(operador);
+            componentes.Add(valor2);
 
-            }
-            else
-            {
-                
-            }
+            return componentes;
         }
         private String TIPOCOMP()
         {
@@ -236,17 +240,41 @@ namespace WindowsFormsApp1.Analizadores
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
                String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
-               Match(Token.Tipo.punto, "Se esperaba un .");
-               String idColum=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
-                Tabla tabla = tablas[nombreTabla];
-                Columna columna = tabla.getColumna(idColum);
-                return columna;
+                List<String> valor = COMP1();
+                if (valor != null)
+                {
+                    Tabla tabla = tablas[nombreTabla];
+                    Columna columna = tabla.getColumna(valor[1]);
+                    List<Object> item = new List<Object>();
+                    item.Add(tabla);
+                    item.Add(columna);
+                    return item;
+                }
+                else
+                {
+                    Columna colum = new Columna(nombreTabla);
+                    return colum;
+                }
               
             }
             else
             {
                 return VALOR();
             }
+        }
+        private List<String> COMP1()
+        {
+           
+            if (preanalisis.TipoToken.Equals(Token.Tipo.punto))
+            {
+                Token tk = Match(Token.Tipo.punto, "Se esperaba un .");
+                Token tk2 = Match(Token.Tipo.id, "Se esperaba un id");
+                List<String> valores = new List<string>();
+                valores.Add(tk.Lexema);
+                valores.Add(tk2.Lexema);
+                return valores;
+            }
+            return null;
         }
         private void CONDICIONES()
         {
@@ -262,22 +290,43 @@ namespace WindowsFormsApp1.Analizadores
                 CONDICIONES();
             }
         }
-        private void TABLA()
+        private void TABLA(Dictionary<String,Tabla> tabs)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                TABLA();
+                String nombre=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+                Tabla tab = this.tablas[nombre];
+                tabs.Add(nombre, tab);
+                TABLA(tabs);
             }
         }
-        private void SELECCIONAR1()
+        private void SELECCIONAR1(List<String> columnas)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
-                Match(Token.Tipo.id, "Se esperaba un id");
+                String nombre=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
                 Match(Token.Tipo.punto, "Se esperaba un punto");
-                Match(Token.Tipo.id, "Se esperaba un id");
+                String val=SELECTO();
+                if (val == null) return;
+                if (this.tablas.ContainsKey(nombre))
+                {
+                    Tabla tab = this.tablas[nombre];
+                    if (val.Equals("*"))
+                    {
+                        foreach(Columna item in tab.getColumnas())
+                        {
+                            columnas.Add(item.Id);
+                        }
+                    }
+                    else
+                    {
+                        columnas.Add(val);
+                    }
+                    
+                }
+                
+
             }else if (preanalisis.TipoToken.Equals(Token.Tipo.asterisco))
             {
                 Match(Token.Tipo.asterisco, "Se esperaba un *");
@@ -288,12 +337,31 @@ namespace WindowsFormsApp1.Analizadores
                 Panic();
             }
         }
+        private String SELECTO()
+        {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.id))
+            {
+                String val=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+                return val;
+            }else if (preanalisis.TipoToken.Equals(Token.Tipo.asterisco))
+            {
+                String val=Match(Token.Tipo.asterisco, "Se esperaba un *").Lexema;
+                return val;
+            }
+            else
+            {
+                Errores("Se esperaba un id o un * y se obtuvo " + preanalisis.Lexema, preanalisis.Fila, preanalisis.Columna);
+                Panic();
+            }
+            return null;
+        }
         private void SELECT()
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.como))
             {
                 Match(Token.Tipo.como, "Se esperaba la palabra reservada Como");
                 Match(Token.Tipo.id, "Se esperaba un id");
+                TABLAS();
             }
 
         }
@@ -302,12 +370,9 @@ namespace WindowsFormsApp1.Analizadores
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                Match(Token.Tipo.punto, "Se esperaba un .");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                Match(Token.Tipo.como, "Se esperaba la palabra Reservada Como");
-                Match(Token.Tipo.id, "Se esperaba un id");
-                TABLAS();
+                List<String> columnas = new List<string>();
+                SELECCIONAR1(columnas);
+                SELECT();
             }
         }
         private void INSERTAR()

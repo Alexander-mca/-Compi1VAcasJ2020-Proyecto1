@@ -56,6 +56,17 @@ namespace WindowsFormsApp1.Tablas
             
             
         }
+        public Tabla(List<String> columnas)
+        {
+            foreach (String item in columnas)
+            {
+                Columna colum = new Columna(item);
+                this.columnas.Add(colum);
+
+            }
+        }
+
+
         public void Insertar(List<Token> dat)
         {
             if (dat.Count == columnas.Count)

@@ -383,11 +383,9 @@ namespace WindowsFormsApp1.Analizadores
                 if (preanalisis.TipoToken.Equals(Token.Tipo.id))
                 {
                     Token tk1 = Match(Token.Tipo.id, "Se esperaba un id");
-                    Token tk2 = Match(Token.Tipo.punto, "Se esperaba un .");
-                    Token tk3 = Match(Token.Tipo.id, "Se esperaba un id");
+                    Nodo ndc1 = new Nodo("COMP1");
                     nd.Agregar(new Nodo(tk1.Lexema));
-                    nd.Agregar(new Nodo(tk2.Lexema));
-                    nd.Agregar(new Nodo(tk3.Lexema));
+                    nd.Agregar(ndc1);
                 }
                 else
                 {
@@ -397,6 +395,21 @@ namespace WindowsFormsApp1.Analizadores
             }catch(Exception e)
             {
                 Console.WriteLine("Error " + e.ToString());
+            }
+        }
+        private void COMP1(Nodo nd)
+        {
+            if (preanalisis.TipoToken.Equals(Token.Tipo.punto))
+            {
+                Token tk2 = Match(Token.Tipo.punto, "Se esperaba un .");
+                Token tk3 = Match(Token.Tipo.id, "Se esperaba un id");
+                if (tk3 == null) return;
+                nd.Agregar(new Nodo(tk2.Lexema));
+                nd.Agregar(new Nodo(tk3.Lexema));
+            }
+            else
+            {
+                nd.Agregar(new Nodo("ε"));
             }
         }
         private void CONDICIONES(Nodo nd)
@@ -549,13 +562,14 @@ namespace WindowsFormsApp1.Analizadores
                 if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
                 {
                     Token tk1=Match(Token.Tipo.coma, "Se esperaba una ,");
-                    Token tk2=Match(Token.Tipo.id, "Se esperaba un id");
-                    Token tk3=Match(Token.Tipo.punto, "Se esperaba un .");
-                    Token tk4=Match(Token.Tipo.id, "Se esperaba un id");
-                    Token tk5=Match(Token.Tipo.como, "Se esperaba la palabra Reservada Como");
-                    Token tk6=Match(Token.Tipo.id, "Se esperaba un id");
-                    Nodo ndtab = new Nodo("TABLAS");
-                    TABLAS(ndtab);
+                    Nodo nds1 = new Nodo("SELECCIONAR1");
+                    SELECCIONAR1(nds1);
+                    Nodo ndsel = new Nodo("SELECT");
+                    SELECT(ndsel);
+                    nd.Agregar(new Nodo(tk1.Lexema));
+                    nd.Agregar(nds1);
+                    nd.Agregar(ndsel);
+
                 }
                 else
                 {
