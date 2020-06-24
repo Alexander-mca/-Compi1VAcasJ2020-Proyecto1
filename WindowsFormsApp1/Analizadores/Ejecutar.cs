@@ -25,6 +25,7 @@ namespace WindowsFormsApp1.Analizadores
             this.tokens.Add(new Token(Token.Tipo.dolar, "$", 0, 0));
             
             INICIO();
+            this.tokens.RemoveAt(this.tokens.Count - 1);
         }
         public Token Match(Token.Tipo tk,String descripcion)
         { Token.Tipo tipo = preanalisis.TipoToken;
@@ -133,8 +134,9 @@ namespace WindowsFormsApp1.Analizadores
             ACTUALIZA();
             Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-            CONDICION();
-            CONDICIONES();
+            List<Object> list = new List<object>();
+            list.Add(CONDICION());
+            CONDICIONES(list);
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
         }
         private void ACTUALIZA()
@@ -151,18 +153,158 @@ namespace WindowsFormsApp1.Analizadores
         private void ELIMINAR()
         {
             Match(Token.Tipo.R_de, "Se esperaba la palabra Reservada De");
-            Match(Token.Tipo.id, "Se esperaba un id");
-            ELIMINAR1();
+            String nombre=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            List<Object> list = new List<object>();
+            ELIMINAR1(list);
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
-
+            if (this.tablas.ContainsKey(nombre))
+            {
+                Tabla tabla = this.tablas[nombre];
+                List<String> columnas = new List<string>();
+                foreach (Columna colum in tabla.getColumnas())
+                {
+                    columnas.Add(colum.Id);
+                }
+                if (list.Count == 0)
+                {
+                    foreach (Columna item in tabla.getColumnas())
+                    {
+                        //se eliminan los datos de todas las columnas
+                        item.Datos.Clear();
+                    }
+                }
+                else
+                {
+                    ConvertirATablas(list, tabla, columnas);
+                }
+               //El List<Object> ya tiene valores tipo Tabla, se procede a verificar si hay mas condiciones
+               
+                        
+                    
+                
+            }
         }
-        private void ELIMINAR1()
+        private void ConvertirATablas(List<Object> list, Tabla tabla, List<String> columnas)
         {
+            
+                //aquí empiezan las multiples condiciones
+                for (int i = 0; i < list.Count; i++)
+                {
+                    //se procede a validar las condiciones
+                    Object obj = list[i];
+                    if (!(obj is Token))
+                    {
+                         List<Object> cond = (List<Object>)obj;
+                        //Comp puede tener una List<Object>c contiene la tabla y la columna, un token o un String
+                        String operando = (String)cond[1];
+                        Object comp1 = cond[0];
+                        if (comp1 is List<Object>)
+                        {
+                            List<Object> valores = (List<Object>)comp1;
+                            Columna colum = (Columna)valores[1];
+                            Object comp2 = cond[2];
+                            if (comp2 is List<Object>)
+                            {
+                                //si ambos valores a comparar son columnas
+                                List<Object> valores2 = (List<Object>)comp2;
+                                Columna colum2 = (Columna)valores2[1];
+                                Condicion condicion = new Condicion(columnas, tabla, tabla, colum, colum2, operando);
+                                Tabla result = condicion.Ejecutar();
+
+                            }
+                            else if (comp2 is Token)
+                            {
+                                Token val2 = (Token)comp2;
+                                Condicion condicion = new Condicion(columnas, tabla, tabla, colum, val2, operando);
+                                //se evalua
+                                Tabla result = condicion.Ejecutar();
+                                //se guarda en la lista de condiciones
+                                list[i] = result;
+
+                            }
+                            else if (comp2 is String)
+                            {
+                                String nameColum = (String)comp2;
+                                Columna colum2 = tabla.getColumna(nameColum);
+                                Condicion condicion = new Condicion(columnas, tabla, tabla, colum, colum2, operando);
+                                //se evalua
+                                Tabla result = condicion.Ejecutar();
+                                //se guarda en la lista
+                                list[i] = result;
+                            }
+
+                        }
+                        else if (comp1 is Token)
+                        {
+                            Token tk = (Token)comp1;
+                            Object comp2 = cond[2];
+                            if (comp2 is String)
+                            {
+                                String val2 = (String)comp2;
+                                Columna cl2 = tabla.getColumna(val2);
+                                Condicion condicion = new Condicion(columnas, tabla, tabla, tk, cl2, operando);
+                                //se evalua
+                                Tabla result = condicion.Ejecutar();
+                                //se guarda en la lista
+                                list[i] = result;
+
+                            }
+                            else if (comp2 is List<Object>)
+                            {
+                                //recordar agregar la tabla que aparece en este list
+                                List<Object> valores = (List<Object>)comp2;
+                                Tabla tab2 = (Tabla)valores[0];
+                                Columna cl2 = (Columna)valores[1];
+                                Condicion condicion = new Condicion(columnas, tabla, tab2, tk, cl2, operando);
+                                //se evalua
+                                Tabla result = condicion.Ejecutar();
+                                //se guarda en la lista
+                                list[i] = result;
+
+                            }
+                        }
+                        else if (comp1 is String)
+                        {
+                            //string
+                            String val1 = (String)comp1;
+                            Columna cl1 = tabla.getColumna(val1);
+                            Object comp2 = cond[2];
+                            if (comp2 is Token)
+                            {
+                                Token valor = (Token)comp2;
+                                Condicion condicion = new Condicion(columnas, tabla, null, cl1, valor, operando);
+                                Tabla result = condicion.Ejecutar();
+                                //se procede a cambiar la List<Object> por una tabla
+                                list[i] = result;
+                            }
+                            else if (comp2 is List<Object>)
+                            {
+
+                            }
+                            else if (comp2 is String)
+                            {
+                                String val2 = (String)comp2;
+                                Columna cl2 = tabla.getColumna(val2);
+                                Condicion condicion = new Condicion(columnas, tabla, tabla, cl1, cl2, operando);
+                                //se evalua
+                                Tabla result = condicion.Ejecutar();
+                                //se guarda en la lista
+                                list[i] = result;
+                            }
+                        }
+
+                    }
+                }
+            
+        }
+        private void ELIMINAR1(List<Object> list)
+        {
+           
             if (preanalisis.TipoToken.Equals(Token.Tipo.donde))
             {
                 Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
-                CONDICION();
-                CONDICIONES();
+                list.Add(CONDICION());
+                CONDICIONES(list);
             }
             else
             {
@@ -181,9 +323,10 @@ namespace WindowsFormsApp1.Analizadores
             tabs.Add(tk.Lexema,tb1);
             TABLA(tabs);
             Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
+            List<Object> lista = new List<object>();
             Object obj=CONDICION();
-
-            CONDICIONES();
+            lista.Add(obj);
+            CONDICIONES(lista);
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
 
         }
@@ -240,11 +383,12 @@ namespace WindowsFormsApp1.Analizadores
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
                String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
-                List<String> valor = COMP1();
+                String valor = COMP1();
+                //se usa para verificar si nombreTabla es una tabla o una columna
                 if (valor != null)
                 {
                     Tabla tabla = tablas[nombreTabla];
-                    Columna columna = tabla.getColumna(valor[1]);
+                    Columna columna = tabla.getColumna(valor);
                     List<Object> item = new List<Object>();
                     item.Add(tabla);
                     item.Add(columna);
@@ -252,8 +396,8 @@ namespace WindowsFormsApp1.Analizadores
                 }
                 else
                 {
-                    Columna colum = new Columna(nombreTabla);
-                    return colum;
+                    
+                    return nombreTabla;
                 }
               
             }
@@ -262,32 +406,32 @@ namespace WindowsFormsApp1.Analizadores
                 return VALOR();
             }
         }
-        private List<String> COMP1()
+        private String COMP1()
         {
            
             if (preanalisis.TipoToken.Equals(Token.Tipo.punto))
             {
                 Token tk = Match(Token.Tipo.punto, "Se esperaba un .");
                 Token tk2 = Match(Token.Tipo.id, "Se esperaba un id");
-                List<String> valores = new List<string>();
-                valores.Add(tk.Lexema);
-                valores.Add(tk2.Lexema);
-                return valores;
+               
+                return tk2.Lexema;
             }
             return null;
         }
-        private void CONDICIONES()
+        private void CONDICIONES(List<Object> list)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.R_Y))
             {
-                Match(Token.Tipo.R_Y, "Se esperaba la palabra reservada Y");
-                CONDICION();
-                CONDICIONES();
+                Token tk=Match(Token.Tipo.R_Y, "Se esperaba la palabra reservada Y");
+                list.Add(tk);
+                list.Add(CONDICION());
+                CONDICIONES(list);
             }else if (preanalisis.TipoToken.Equals(Token.Tipo.R_O))
             {
-                Match(Token.Tipo.R_O, "Se esperaba la palabra reservada O");
-                CONDICION();
-                CONDICIONES();
+                Token tk=Match(Token.Tipo.R_O, "Se esperaba la palabra reservada O");
+                list.Add(tk);
+                list.Add(CONDICION());
+                CONDICIONES(list);
             }
         }
         private void TABLA(Dictionary<String,Tabla> tabs)

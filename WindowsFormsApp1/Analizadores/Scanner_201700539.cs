@@ -356,7 +356,8 @@ namespace WindowsFormsApp1.Analizadores
                     tk = new Token(Token.Tipo.tabla, lexema, fila, columna);                   
                     break;
                 case "insertar":
-                    tk = new Token(Token.Tipo.insertar, lexema, fila, columna);                   
+                    tk = new Token(Token.Tipo.insertar, lexema, fila, columna);
+                    
                     break;
                 case "en":
                     tk = new Token(Token.Tipo.en, lexema, fila, columna);
@@ -411,5 +412,6 @@ namespace WindowsFormsApp1.Analizadores
 
             return tk;
         }
+
     }
 }

@@ -21,6 +21,8 @@ namespace WindowsFormsApp1
         List<Token> ListaTokens = new List<Token>();
         List<Token> Errores = new List<Token>();
         Dictionary<String,Tabla> Tablas = new Dictionary<String,Tabla>();
+        StringBuilder reporteTokens = new StringBuilder();
+        StringBuilder reporteErrores = new StringBuilder();
         Nodo arbolDervicacion;
         public Form1()
         {
@@ -45,9 +47,9 @@ namespace WindowsFormsApp1
             LineNumberTextBox.SelectionAlignment = HorizontalAlignment.Center;
             // set LineNumberTextBox text to null & width to getWidth() function value    
             LineNumberTextBox.Text = "";
-            //LineNumberTextBox.Width = getWidth();
+            LineNumberTextBox.Width = getWidth();
             // now add each line number to LineNumberTextBox upto last line    
-            for (int i = First_Line; i <= richTextBox1.Lines.Length; i++)
+            for (int i = First_Line; i <Last_Line+2; i++)
             {
                 LineNumberTextBox.Text += i + 1 + "\n";
             }
@@ -90,10 +92,8 @@ namespace WindowsFormsApp1
 
         private void richTextBox1_TextChanged_1(object sender, EventArgs e)
         {
-            if (richTextBox1.Text == "")
-            {
-                AddLineNumbers();
-            }
+            AddLineNumbers();
+            
 
         }
 
@@ -149,6 +149,7 @@ namespace WindowsFormsApp1
                 arch.Close();
 
             }
+            AddLineNumbers();
             //String tex = text1.Text;
             //text1.Clear();
             //Colorear(text1, tex, Color.Black);
@@ -255,7 +256,7 @@ namespace WindowsFormsApp1
         private void ejecutarToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Ejecutar();
-
+            
         }
         public void Ejecutar()
         {
@@ -264,10 +265,12 @@ namespace WindowsFormsApp1
             
             Scanner_201700539 scanner = new Scanner_201700539(ListaTokens,richTextBox1);           
             this.ListaTokens = scanner.getListaDeTokens();
+            ColorearTexto();
+            ReporteTokens(this.reporteTokens);
             List<Token> tokens = this.ListaTokens;
-            QuitarComentarios(ref tokens);
+            QuitarComentarios(tokens);
             this.Errores = scanner.getErrores();
-            Parser_201700539 parser = new Parser_201700539(tokens, this.Errores);
+            Parser_201700539 parser = new Parser_201700539(tokens,this.Errores);
             this.arbolDervicacion = parser.getArbol();
             if (parser.getErrores().Count != 0)
             {
@@ -292,18 +295,24 @@ namespace WindowsFormsApp1
 
             }
             richTextBox1.Text = texto;
-           
+            AddLineNumbers();
         }
-        private void QuitarComentarios(ref List<Token> list)
+        private void QuitarComentarios(List<Token> list)
         {
-            List<Token> tokens = list;
-            foreach (Token item in tokens)
+            List<Token> tokens = new List<Token>();
+            tokens = list;
+            int tam = tokens.Count;
+            for (int i = 0; i < tam; i++)
             {
-                if(item.TipoToken.Equals(Token.Tipo.ComentLinea) || item.TipoToken.Equals(Token.Tipo.ComentMult))
+                Token item = tokens[i];
+                if (item.TipoToken.Equals(Token.Tipo.ComentLinea) || item.TipoToken.Equals(Token.Tipo.ComentMult))
                 {
                     tokens.Remove(item);
+                    tam--;
                 }
+
             }
+               
            
         }
 
@@ -373,11 +382,10 @@ namespace WindowsFormsApp1
                 MessageBox.Show("Los archivos no han sido analizados");
                 return;
             }
-            StringBuilder data = new StringBuilder();
-            ReporteTokens(data);
-            String info = data.ToString();
+            
+            String info = this.reporteTokens.ToString();
             StreamWriter dat = new StreamWriter("201700539_tok.html");
-            dat.WriteLine(data);
+            dat.WriteLine(info);
             dat.Close();
             System.Diagnostics.Process.Start("201700539_tok.html");
 
@@ -436,25 +444,80 @@ namespace WindowsFormsApp1
             dt.Close();
             System.Diagnostics.Process.Start("201700539_err.html");
         }
-        private void Colorear(string text, Color color)
-        {
-            richTextBox1.SelectionStart = richTextBox1.Find(text);
-            richTextBox1.SelectionLength = text.Length-1;
-            richTextBox1.SelectionColor = color;            
-            richTextBox1.SelectionColor = richTextBox1.ForeColor;
-        }
+        
         private void  ColorearTexto()
         {
-            foreach(Token tk in this.ListaTokens){
-                Token.Tipo tipo = tk.TipoToken;
-                if (tipo.Equals(Token.Tipo.entero) || tipo.Equals(Token.Tipo.flotante))
+            Dictionary<String, Token> datos = ReducirLista(this.ListaTokens);
+            
+            foreach (Token tk in datos.Values)
+            {
+                int i =(int)tk.TipoToken;
+                switch (i)
                 {
-                    Colorear(tk.Lexema, Color.Green);
+                    case 1:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.Brown);
+                        break;
+                    case 3:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.Orange);
+                        break;
+                    case 2:
+                    case 6:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.Blue);
+                        break;
+                    case 4:
+                    case 5:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.LightGray);
+                        break;
+                    case 7:
+                        String val = tk.Lexema.Replace("\\", "");
+                        HighlightPhrase(richTextBox1, val, Color.Green);
+                        break;
+                    case 8:
+                    case 9:
+                    case 10:
+                    case 11:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.Red);
+                        break;
+                    case 18:                        
+                    case 20:
+                    case 33:
+                    case 34:
+                        HighlightPhrase(richTextBox1, tk.Lexema, Color.Violet);
+                        break;
+
                 }
             }
         }
-
-        private void label1_Click(object sender, EventArgs e)
+        private Dictionary<String,Token> ReducirLista(List<Token> tk)
+        {
+            Dictionary<String, Token> datos = new Dictionary<string, Token>();
+            foreach(Token token in tk)
+            {
+                if (!datos.ContainsKey(token.Lexema))
+                {
+                    datos.Add(token.Lexema,token);
+                }
+            }
+            return datos;
+        }
+        static void HighlightPhrase(RichTextBox box, string phrase, Color color)
+        {
+            int pos = box.SelectionStart;
+            string s = box.Text;
+            for (int ix = 0; ;)
+            {
+                int jx = s.IndexOf(phrase, ix, StringComparison.CurrentCultureIgnoreCase);
+                if (jx < 0) break;
+                box.SelectionStart = jx;
+                box.SelectionLength = phrase.Length;
+                box.SelectionColor = color;
+                ix = jx + 1;
+            }
+            box.SelectionStart = pos;
+            box.SelectionLength = 0;
+        }
+    
+    private void label1_Click(object sender, EventArgs e)
         {
 
         }
@@ -472,6 +535,11 @@ namespace WindowsFormsApp1
         private void acercaDeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Versión: 1.0\nCreador:Denis Alexander Morales Catalán\nCarné:201700539","Acerca De");
+        }
+
+        private void richTextBox1_Enter(object sender, EventArgs e)
+        {
+            AddLineNumbers();
         }
     }
 }

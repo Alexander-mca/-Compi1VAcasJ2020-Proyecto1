@@ -22,7 +22,7 @@ namespace WindowsFormsApp1.Analizadores
         {
             return this.arbolSintactico;
         }
-        public Parser_201700539( List<Token> tokens,List<Token> Errores)
+        public Parser_201700539(List<Token> tokens,List<Token> Errores)
         {   //se deben eliminar los comentarios
             this.tokens = tokens;
             this.errores = Errores;
@@ -32,6 +32,7 @@ namespace WindowsFormsApp1.Analizadores
             Nodo nodo1 = new Nodo("INICIO");
             INICIO(nodo1);
             this.arbolSintactico = nodo1;
+            this.tokens.RemoveAt(this.tokens.Count - 1);
         }
         private Token Match(Token.Tipo tk,String descripcion)
         { Token.Tipo tipo = preanalisis.TipoToken;
@@ -86,21 +87,22 @@ namespace WindowsFormsApp1.Analizadores
         {
             try
             {
-                Nodo nodo1 = new Nodo("INSTRUCCION");
-                Nodo nodo2 = new Nodo("INSTRUCCIONES");
-                INSTRUCCION(nodo1);
+                               
+               
                 if (!preanalisis.TipoToken.Equals(Token.Tipo.dolar))
-                {
-
+                {   Nodo nodo1 = new Nodo("INSTRUCCION");
+                    INSTRUCCION(nodo1);
+                    Nodo nodo2 = new Nodo("INSTRUCCIONES");
                     INSTRUCCIONES(nodo2);
+                    nodo.Agregar(nodo1);
+                    nodo.Agregar(nodo2);
                 }
                 else
                 {
-                    nodo2.Agregar(new Nodo("ε"));
+                    
                     return;
                 }
-                nodo.Agregar(nodo1);
-                nodo.Agregar(nodo2);
+                
             }catch(Exception e)
             {
                 Console.WriteLine("Error " + e.ToString());
@@ -591,7 +593,7 @@ namespace WindowsFormsApp1.Analizadores
                 Nodo ndv = new Nodo("VALOR");
                 VALOR(ndv);
                 Nodo ndvs = new Nodo("VALORES");
-                VALORES(ndv);
+                VALORES(ndvs);
                 Token tk5 = Match(Token.Tipo.parCierra, "Se esperaba un )");
                 Token tk6 = Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
                 nodo.Agregar(new Nodo(tk1.Lexema));
@@ -621,7 +623,10 @@ namespace WindowsFormsApp1.Analizadores
                     tk=Match(Token.Tipo.flotante, "Se esperaba un número tipo flotante");
                     break;
                 case Token.Tipo.cadena:
-                    tk=Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
+                    Token tk1=Match(Token.Tipo.cadena, "Se esperaba un valor tipo cadena");
+                    String val=tk1.Lexema.Replace("\"", "\\\"");
+                    tk1.Lexema = val;
+                    tk = tk1;
                     break;
                 case Token.Tipo.fecha:
                     tk=Match(Token.Tipo.fecha, "Se esperaba un valor tipo fecha");
@@ -649,6 +654,9 @@ namespace WindowsFormsApp1.Analizadores
                     VALOR(ndv);
                     Nodo ndvs = new Nodo("VALORES");
                     VALORES(ndvs);
+                    nd.Agregar(new Nodo(tk.Lexema));
+                    nd.Agregar(ndv);
+                    nd.Agregar(ndvs);
                 }
                 else
                 {
