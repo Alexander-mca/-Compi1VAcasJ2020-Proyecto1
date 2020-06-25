@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace WindowsFormsApp1.Tablas
 {
@@ -24,14 +25,21 @@ namespace WindowsFormsApp1.Tablas
             dot.Close();
             String ruta=Path.GetFullPath("arbol.txt");
             //String comando = "/C cd " + ruta;
-            String cmddot="Dot -Tjpg arbol.txt -o arbol.jpg";
+            String cmddot="/C Dot -Tsvg arbol.txt -o arbol.svg";
             //Process.Start("CMD.exe", comando);
             Process pros = new Process();
-            //pros.StartInfo.WindowStyle= System.Diagnostics.ProcessWindowStyle.Hidden;
+            pros.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             pros.StartInfo.FileName = "CMD.exe";
             pros.StartInfo.Arguments = cmddot;
             pros.Start();
-            Process.Start("arbol.jpg");
+            MessageBox.Show("Imagen Siengo generada, por favor Espera.", "Informacion");
+            pros.WaitForExit();
+            MessageBox.Show("Proceso Terminado", "Informacion");
+
+            if (File.Exists("arbol.svg"))
+            {
+                Process.Start("arbol.svg");
+            }
         }
         private void getNodos(Nodo raiz,StringBuilder nodos)
         {

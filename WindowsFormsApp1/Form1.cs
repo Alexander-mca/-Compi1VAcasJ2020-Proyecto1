@@ -524,12 +524,12 @@ namespace WindowsFormsApp1
 
         private void manualTécnicpToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("Manual Técnico.docx");
+            System.Diagnostics.Process.Start("Manual Técnico.pdf");
         }
 
         private void manualDeUsuarioToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("Manual de Usuario.docx");
+            System.Diagnostics.Process.Start("Manual de Usuario.pdf");
         }
 
         private void acercaDeToolStripMenuItem_Click(object sender, EventArgs e)

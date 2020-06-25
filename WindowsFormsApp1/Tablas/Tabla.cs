@@ -44,6 +44,35 @@ namespace WindowsFormsApp1.Tablas
             }
             return null;
         }
+        public List<Token> getValorFila(int i)
+        {
+            List<Token> valores = new List<Token>();
+            List<Columna> columnas = this.columnas;
+            foreach(Columna item in columnas)
+            {
+                valores.Add(item.Datos[i]);
+            }
+            return valores;
+        }
+        public void RemoverFila(int i)
+        {
+            List<Columna> columnas = this.columnas;
+            foreach (Columna item in columnas)
+            {
+                item.Datos.RemoveAt(i);
+            }
+        }
+
+
+        public List<String> getNameColumnas()
+        {
+            List<String> lista = new List<string>();
+            foreach(Columna item in this.columnas)
+            {
+                lista.Add(item.Id);
+            }
+            return lista;
+        }
         public Tabla(List<String> columnas,String id)
         {
             this.id = id;
@@ -80,10 +109,7 @@ namespace WindowsFormsApp1.Tablas
             }
         }
 
-        public void Eliminar()
-        {
-
-        }
+       
         public void Actualizar()
         {
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using WindowsFormsApp1.Tablas;
 using static WindowsFormsApp1.Tablas.Tabla;
 
@@ -32,6 +33,8 @@ namespace WindowsFormsApp1.Analizadores
             if (tk.Equals(tipo))
             {
                 Token valor = preanalisis;
+                String val = valor.Lexema.ToLower();
+                valor.Lexema = val;
                 preanalisis = getNextToken();
                 return valor;
             }
@@ -125,46 +128,86 @@ namespace WindowsFormsApp1.Analizadores
         }
         private void ACTUALIZAR()
         {
-            Match(Token.Tipo.id, "Se esperaba un id");
+
+            String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
             Match(Token.Tipo.establecer, "Se esperaba la palabra Reservada Establecer");
             Match(Token.Tipo.parAbre, "Se esperaba un (");
-            Match(Token.Tipo.id, "Se esperaba un id");
+            Token tk1=Match(Token.Tipo.id, "Se esperaba un id");
             Match(Token.Tipo.igual, "Se espeaba un =");
-            VALOR();
-            ACTUALIZA();
+            List<Campo> valores = new List<Campo>();
+            Token tk=VALOR();
+            //se empieza a tomar los valores a establecer
+            valores.Add(new Campo(tk, tk1));            
+            ACTUALIZA(valores);
             Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.donde, "Se esperaba la palabra Reservada Donde");
             List<Object> list = new List<object>();
             list.Add(CONDICION());
             CONDICIONES(list);
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
+            if (this.tablas.ContainsKey(nombreTabla))
+            {
+                Tabla tabla = this.tablas[nombreTabla];
+                List<String> columnas = tabla.getNameColumnas();
+                if (valores.Count > tabla.getColumnas().Count )
+                {//los campos no son del mismo tam
+                    Console.WriteLine("Los campos y las columnas de la tabla difieren en tamaño");
+                    return;
+                }
+                //aca empieza lo de las condiciones, resultante es la unica tabla que resulta de todas las condiciones
+                Tabla resultante = getTablaCondiciones(list, tabla, columnas);
+                //se compara resultante con la tabla de la que se desea actualizar datos y si hacen match se elimina
+                int tam = tabla.getColumnas()[0].Datos.Count;
+                for (int i = 0; i < tam; i++)
+                {
+                    List<Token> valores1 = tabla.getValorFila(i);
+                    int tam2 = resultante.getColumnas()[0].Datos.Count;
+                    for (int j = 0; j < tam2; j++)
+                    {
+                        List<Token> valores2 = resultante.getValorFila(j);
+                        bool valor = CompararDatos(valores1, valores2, 0);
+                        if (valor)
+                        {//actualizar datos por columna
+                            foreach(Campo item in valores)
+                            {
+                                Columna colum = tabla.getColumna(item.campo.Lexema);
+                                colum.Datos[i] = item.valor;
+
+                            }
+                            break;
+                        }
+                    }
+                }
+
+            }
+
+
         }
-        private void ACTUALIZA()
+        private void ACTUALIZA(List<Campo> lista)
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.coma))
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
-                Match(Token.Tipo.id, "Se esperaba un id");
+                Token campo=Match(Token.Tipo.id, "Se esperaba un id");
                 Match(Token.Tipo.igual, "Se esperaba un =");
-                VALOR();
-                ACTUALIZA();
+                Token tk=VALOR();
+                lista.Add(new Campo(tk,campo));
+                ACTUALIZA(lista);
             }
         }
         private void ELIMINAR()
         {
             Match(Token.Tipo.R_de, "Se esperaba la palabra Reservada De");
-            String nombre=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            String vl1=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            String nombre = vl1.ToLower();
             List<Object> list = new List<object>();
             ELIMINAR1(list);
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
             if (this.tablas.ContainsKey(nombre))
             {
                 Tabla tabla = this.tablas[nombre];
-                List<String> columnas = new List<string>();
-                foreach (Columna colum in tabla.getColumnas())
-                {
-                    columnas.Add(colum.Id);
-                }
+                List<String> columnas = tabla.getNameColumnas();
+                
                 if (list.Count == 0)
                 {
                     foreach (Columna item in tabla.getColumnas())
@@ -172,17 +215,152 @@ namespace WindowsFormsApp1.Analizadores
                         //se eliminan los datos de todas las columnas
                         item.Datos.Clear();
                     }
+                    return;
                 }
-                else
+                //aca empieza lo de las condiciones, resultante es la unica tabla que resulta de todas las condiciones
+               Tabla resultante= getTablaCondiciones(list, tabla, columnas);
+                //se compara resultante con la tabla de la que se desea eliminar datos y si hacen match se elimina
+                int tam = tabla.getColumnas()[0].Datos.Count;
+                for (int i = 0; i < tam; i++)
                 {
-                    ConvertirATablas(list, tabla, columnas);
+                    List<Token> valores1 = tabla.getValorFila(i);
+                    int tam2 = resultante.getColumnas()[0].Datos.Count;
+                    for (int j = 0; j <tam2; j++)
+                    {
+                        List<Token> valores2 = resultante.getValorFila(j);
+                        bool valor = CompararDatos(valores1, valores2, 0);
+                        if (valor)
+                        {//remover dato
+                            tabla.RemoverFila(i);
+                            tam = tabla.getColumnas()[0].Datos.Count;
+                            i--;
+                            break;
+                        }
+                    }
                 }
-               //El List<Object> ya tiene valores tipo Tabla, se procede a verificar si hay mas condiciones
-               
-                        
-                    
-                
+
+
             }
+            else
+            {
+                Console.WriteLine("La tabla " + nombre + " no existe");
+            }
+        }
+        private Tabla getTablaCondiciones(List<Object> list,Tabla tabla, List<String> columnas)
+        {
+            
+            ConvertirATablas(list, tabla, columnas);
+
+            //El List<Object> ya tiene valores tipo Tabla, se procede a verificar si hay mas condiciones
+            int i = 0;
+            if (list.Count > 1)
+            {
+                int tam = list.Count;
+                while (i < tam - 2)
+                {
+                    Tabla tabla1 = (Tabla)list[i];
+                    Token logico = (Token)list[i + 1];
+                    Tabla tabla2 = (Tabla)list[i + 2];
+                    //se operan con Y | O y devuelve una tabla con los valores de estos
+                    Tabla result = getResultado(tabla1, tabla2, logico);
+                    if (result != null)
+                    {
+                        //se procede a guardar la tabla obtenida en list, se remplaza con el primer valor y se eliminan los otros 2
+                        list[i] = result;
+                        list.Remove(logico);
+                        list.Remove(tabla2);
+                        tam = list.Count;
+                    }
+                    i++;
+                }
+
+                //ya solo queda una tabla
+                if (list[0] is Tabla)
+                {
+                    Tabla tb = (Tabla)list[0];
+                    return tb;
+                }
+
+
+            }
+            else if(list.Count==1)
+            {//si solo hay uno se retorna 
+                if (list[0] is Tabla)
+                {
+                    Tabla tb = (Tabla)list[0];
+                    return tb;
+                }
+            }
+            return null;
+        }
+        private Tabla getResultado(Tabla tabla1,Tabla tabla2, Token logico)
+        {
+            Tabla Resultado=new Tabla(tabla1.getNameColumnas());
+            
+            if (logico.TipoToken.Equals(Token.Tipo.R_Y))
+            {
+                //se procede a comparar los valores de cada fila de las tablas
+                int tam1 = (tabla1.getColumnas()[0]).Datos.Count;
+                for (int i = 0; i < tam1; i++)
+                {
+                    List<Token> val1 = tabla1.getValorFila(i);
+                    int tam2 = (tabla2.getColumnas()[0]).Datos.Count;
+                    for (int j = 0; j < tam2; j++)
+                    {
+                        List<Token> val2 = tabla2.getValorFila(j);
+                        bool valor = CompararDatos(val1, val2,0);
+                        if (valor)
+                        {
+                            Resultado.Insertar(val2);
+                        }
+                       
+                    }
+                }
+                return Resultado;
+            }else if (logico.TipoToken.Equals(Token.Tipo.R_O))
+            {
+                int tam1 = (tabla1.getColumnas()[0]).Datos.Count;
+                for (int i = 0; i < tam1; i++)
+                {
+                    List<Token> val1 = tabla1.getValorFila(i);
+                    int tam2 = (tabla2.getColumnas()[0]).Datos.Count;
+                    for (int j = 0; j < tam2; j++)
+                    {
+                        List<Token> val2 = tabla2.getValorFila(j);
+                        bool valor = CompararDatos(val1, val2, 0);
+                        if (!valor)
+                        {
+                            tabla1.Insertar(val2);
+                        }
+
+                    }
+                }
+                return tabla1;
+            }
+            return null;
+        }
+        private bool CompararDatos(List<Token> list1,List<Token> list2, int j)
+        {
+            bool valor = false;
+            if (j < list1.Count)
+            {
+                Token tk1 = list1[j];
+                Token tk2 = list2[j];
+                j++;
+                if (tk1.Lexema.Equals(tk2.Lexema))
+                {
+                    valor = true;
+                    bool valor2 = valor && CompararDatos(list1, list2, j);
+                    return valor2;
+                }
+
+            }
+            else
+            {
+                valor = true;
+            }
+            
+            return valor;
         }
         private void ConvertirATablas(List<Object> list, Tabla tabla, List<String> columnas)
         {
@@ -226,11 +404,17 @@ namespace WindowsFormsApp1.Analizadores
                             {
                                 String nameColum = (String)comp2;
                                 Columna colum2 = tabla.getColumna(nameColum);
-                                Condicion condicion = new Condicion(columnas, tabla, tabla, colum, colum2, operando);
-                                //se evalua
-                                Tabla result = condicion.Ejecutar();
-                                //se guarda en la lista
-                                list[i] = result;
+                                    if (colum2 == null)
+                                    {
+                                        MessageBox.Show("Exestin algunos errores de ejecucion.", "Error");
+                                        continue;
+                                    }
+                                    Condicion condicion = new Condicion(columnas, tabla, tabla, colum, colum2, operando);
+                                    //se evalua
+                                    Tabla result = condicion.Ejecutar();
+                                    //se guarda en la lista
+                                    list[i] = result;
+                                
                             }
 
                         }
@@ -238,10 +422,16 @@ namespace WindowsFormsApp1.Analizadores
                         {
                             Token tk = (Token)comp1;
                             Object comp2 = cond[2];
-                            if (comp2 is String)
-                            {
-                                String val2 = (String)comp2;
-                                Columna cl2 = tabla.getColumna(val2);
+                        if (comp2 is String)
+                        {
+
+                            String val2 = (String)comp2;
+                            Columna cl2 = tabla.getColumna(val2);
+                               if (cl2== null)
+                                {
+                                    MessageBox.Show("Exestin algunos errores de ejecucion.", "Error");
+                                    continue;
+                                }
                                 Condicion condicion = new Condicion(columnas, tabla, tabla, tk, cl2, operando);
                                 //se evalua
                                 Tabla result = condicion.Ejecutar();
@@ -268,6 +458,12 @@ namespace WindowsFormsApp1.Analizadores
                             //string
                             String val1 = (String)comp1;
                             Columna cl1 = tabla.getColumna(val1);
+                            if (cl1 == null)
+                            {
+                            MessageBox.Show("Exestin algunos errores de ejecucion.", "Error");
+                                continue;
+                            }
+                            
                             Object comp2 = cond[2];
                             if (comp2 is Token)
                             {
@@ -382,17 +578,20 @@ namespace WindowsFormsApp1.Analizadores
         {
             if (preanalisis.TipoToken.Equals(Token.Tipo.id))
             {
-               String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+                String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
                 String valor = COMP1();
                 //se usa para verificar si nombreTabla es una tabla o una columna
                 if (valor != null)
                 {
-                    Tabla tabla = tablas[nombreTabla];
-                    Columna columna = tabla.getColumna(valor);
-                    List<Object> item = new List<Object>();
-                    item.Add(tabla);
-                    item.Add(columna);
-                    return item;
+                    if (this.tablas.ContainsKey(nombreTabla))
+                    {
+                        Tabla tabla = tablas[nombreTabla];
+                        Columna columna = tabla.getColumna(valor);                        
+                        List<Object> item = new List<Object>();
+                        item.Add(tabla);
+                        item.Add(columna);
+                        return item;
+                    }
                 }
                 else
                 {
@@ -405,6 +604,7 @@ namespace WindowsFormsApp1.Analizadores
             {
                 return VALOR();
             }
+            return null;
         }
         private String COMP1()
         {
@@ -581,19 +781,21 @@ namespace WindowsFormsApp1.Analizadores
             Match(Token.Tipo.tabla, "Se esperaba la palabra Reservada Tabla");
             //se obtiene el nombre de la tabla que se va a crear
             String nombreTabla=Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            String nameTable = nombreTabla.ToLower();
             Match(Token.Tipo.parAbre, "Se esperaba un (");
             //se obtiene los nombres de las columnas
             String idColumna =Match(Token.Tipo.id, "Se esperaba un id").Lexema;
+            String idCol = idColumna.ToLower();
             List<String> columnas = new List<String>();
-            columnas.Add(idColumna);
+            columnas.Add(idCol);
             TIPO();
             CAMPOS(columnas);
             Match(Token.Tipo.parCierra, "Se esperaba un )");
             Match(Token.Tipo.puntoycoma, "Se esperaba un ;");
             if (!this.tablas.ContainsKey(nombreTabla))
             {
-                Tabla tabla = new Tabla(columnas, nombreTabla);
-                tablas.Add(nombreTabla, tabla);
+                Tabla tabla = new Tabla(columnas, nameTable);
+                tablas.Add(nameTable, tabla);
             }
         }
         private void CAMPOS(List<String> entradas)
@@ -602,7 +804,8 @@ namespace WindowsFormsApp1.Analizadores
             {
                 Match(Token.Tipo.coma, "Se esperaba una ,");
                 String idColumna= Match(Token.Tipo.id, "Se esperaba un id ").Lexema;
-                entradas.Add(idColumna);
+                String idCol = idColumna.ToLower();
+                entradas.Add(idCol);
                 TIPO();
                 CAMPOS(entradas);
             }

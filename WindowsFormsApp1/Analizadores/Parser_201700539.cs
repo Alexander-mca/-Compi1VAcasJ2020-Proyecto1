@@ -189,6 +189,7 @@ namespace WindowsFormsApp1.Analizadores
                 nodo.Agregar(new Nodo(tk21.Lexema));
                 nodo.Agregar(new Nodo(tk3.Lexema));
                 nodo.Agregar(new Nodo(tk4.Lexema));
+                nodo.Agregar(ndv);
                 nodo.Agregar(nda);
                 nodo.Agregar(new Nodo(tk41.Lexema));
                 nodo.Agregar(new Nodo(tk5.Lexema));
@@ -386,6 +387,7 @@ namespace WindowsFormsApp1.Analizadores
                 {
                     Token tk1 = Match(Token.Tipo.id, "Se esperaba un id");
                     Nodo ndc1 = new Nodo("COMP1");
+                    COMP1(ndc1);
                     nd.Agregar(new Nodo(tk1.Lexema));
                     nd.Agregar(ndc1);
                 }
@@ -393,6 +395,7 @@ namespace WindowsFormsApp1.Analizadores
                 {
                     Nodo ndv = new Nodo("VALOR");
                     VALOR(ndv);
+                    nd.Agregar(ndv);
                 }
             }catch(Exception e)
             {
