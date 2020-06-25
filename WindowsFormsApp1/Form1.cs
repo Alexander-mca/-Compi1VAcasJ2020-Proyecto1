@@ -255,15 +255,22 @@ namespace WindowsFormsApp1
 
         private void ejecutarToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Ejecutar();
+            String texto = richTextBox1.SelectedText;
+            if (texto != null)
+            {
+                Ejecutar(texto);
+                return;
+            }
+            Ejecutar(richTextBox1.Text);
+
             
         }
-        public void Ejecutar()
+        public void Ejecutar(String texto)
         {
             this.ListaTokens.Clear();
             this.Errores.Clear();
             
-            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens,richTextBox1);           
+            Scanner_201700539 scanner = new Scanner_201700539(ListaTokens,texto);           
             this.ListaTokens = scanner.getListaDeTokens();
             ColorearTexto();
             ReporteTokens(this.reporteTokens);

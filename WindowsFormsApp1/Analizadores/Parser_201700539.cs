@@ -254,6 +254,7 @@ namespace WindowsFormsApp1.Analizadores
                 nodo.Agregar(new Nodo(tk1.Lexema));
                 nodo.Agregar(new Nodo(tk2.Lexema));
                 nodo.Agregar(nde1);
+                nodo.Agregar(new Nodo(tk3.Lexema));
             }catch(Exception e)
             {
                 Console.WriteLine("Error " + e.ToString());

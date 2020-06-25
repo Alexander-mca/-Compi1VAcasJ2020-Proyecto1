@@ -12,7 +12,7 @@ namespace WindowsFormsApp1.Analizadores
     {
         List<Token> ListaTokens = new List<Token>();
         List<Token> Errores = new List<Token>();
-        RichTextBox documento;
+       
         public List<Token> getErrores()
         {
             return this.Errores;
@@ -21,12 +21,12 @@ namespace WindowsFormsApp1.Analizadores
         {
             return this.ListaTokens;
         }
-        public Scanner_201700539(List<Token> ListaTokens,RichTextBox documento)
+        public Scanner_201700539(List<Token> ListaTokens,String doc)
         {
-            this.documento = documento;
+           
             int estado = 0;
             String lexema="";
-            String doc = documento.Text;
+           
             int fila=1, columna = 1;
             for  (int i=0;i<doc.Length;i++)
             {
